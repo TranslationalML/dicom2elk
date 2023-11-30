@@ -26,11 +26,8 @@ from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 
 
-from dicom2elk.info import (
-    __packagename__,
-    __version__,
-    __copyright__
-)
+from dicom2elk.info import __packagename__, __version__, __copyright__
+
 # This has to be imported before importing multiprocessing Pool
 # See https://stackoverflow.com/questions/57354700/starmap-combined-with-tqdm
 from dicom2elk.istarmap import istarmap  # noqa: E402
@@ -140,7 +137,7 @@ def get_parser():
         "-v",
         "--version",
         action="version",
-        version=f"{__packagename__} {__version__}\n\n{__copyright__}"
+        version=f"{__packagename__} {__version__}\n\n{__copyright__}",
     )
     return parser
 
@@ -271,11 +268,11 @@ def write_json_files(json_dicts, output_dir, logger=None):
                            produced by `get_dcm_tags_list`.
         output_dir (str): Path to output directory.
         logger (logging.Logger): Logger object.
-    
+
     Note:
         The JSON files are named after the dicom files from which the
         tags were extracted.
-    
+
     Returns:
         list: List of paths to JSON files.
     """
@@ -331,7 +328,7 @@ def main():
 
     # Create logger
     logger = create_logger(logging_level, args.output_dir)
-    warnings.filterwarnings('ignore')
+    warnings.filterwarnings("ignore")
 
     # Handle n_threads argument
     # If n_threads is invalid, it is set to default value
@@ -343,7 +340,7 @@ def main():
     args.output_dir = os.path.abspath(args.output_dir)
     if args.config is not None:
         args.config = os.path.abspath(args.config)
-    
+
     # Create output directory if it does not exist
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)

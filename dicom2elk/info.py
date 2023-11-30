@@ -18,7 +18,7 @@ __copyright__ = "\n".join(
     [
         "Copyright (C)".format(__current_year__),
         "The TranslationalML team and Contributors.",
-        "All rights reserved."
+        "All rights reserved.",
     ]
 )
 
@@ -33,10 +33,8 @@ __url__ = "https://github.com/TranslationalML/{name}/tree/{version}".format(
     name=__packagename__, version=__version__
 )
 
-DOWNLOAD_URL = (
-    "https://github.com/TranslationalML/{name}/archive/{ver}.tar.gz".format(
-        name=__packagename__, ver=__version__
-    )
+DOWNLOAD_URL = "https://github.com/TranslationalML/{name}/archive/{ver}.tar.gz".format(
+    name=__packagename__, ver=__version__
 )
 
 DOCKER_HUB = "TO_BE_COMPLETED_ONCE_IT_IS_DEPLOYED"
