@@ -1,0 +1,12 @@
+name: dicom2elk
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - pydicom==2.4.3
+      - elasticsearch==8.11.0
+      - asyncio==3.4.3
+      - nest_asyncio==1.5.8
+      - tqdm==4.66.1
