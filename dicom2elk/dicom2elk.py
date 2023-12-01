@@ -9,7 +9,7 @@ import logging
 import json
 import sys
 import time
-import functools
+import memory_profiler
 
 from os import cpu_count
 from concurrent.futures import ThreadPoolExecutor
@@ -65,7 +65,7 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def create_logger(level=logging.INFO, output_dir=None):
+def create_logger(level=logging.INFO, output_dir: str = None):
     """Create and configure logger.
 
     Args:
@@ -142,6 +142,38 @@ def get_parser():
         "metadata tags from dicom files",
     )
     parser.add_argument(
+        "-p",
+        "--process-handler",
+        type=str,
+        default="multiprocessing",
+        choices=["multiprocessing", "asyncio"],
+        help="Process handler to use for parallel/asynchronous processing. "
+        "Can be either 'multiprocessing' or 'asyncio'",
+    )
+    parser.add_argument(
+        "-s",
+        "--sleep-time-ms",
+        type=float,
+        default=0,
+        help="Sleep time in milliseconds to wait between each file processing. "
+        "This might be useful to avoid overloading the system.",
+    )
+    parser.add_argument(  # boolean option to perform or not memory profiling
+        "--profile",
+        action="store_true",
+        help="When specified, performance / memory profiling is performed and results are saved. "
+        "If --profile-tsv is specified, results are saved in the specified TSV file. "
+        "Otherwise, results are saved in a TSV file named after the input dicom list file "
+        "with the suffix '.profile.tsv' in the specified `output_dir` directory.",
+    )
+    parser.add_argument(
+        "--profile-tsv",
+        type=str,
+        default=None,
+
+        help="Specify a TSV file to save mem/perf profiling results.",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
@@ -150,7 +182,7 @@ def get_parser():
     return parser
 
 
-def get_config(config_file):
+def get_config(config_file: str):
     """Load config file in JSON format.
 
     Args:
@@ -178,20 +210,24 @@ def get_dcm_list(dcm_list_file):
     return dcm_list
 
 
-def get_dcm_tags(dcm_file, kwargs):
+def get_dcm_tags(dcm_file: str, sleep_time_ms: str = 0, kwargs: dict = None):
     """Extract relevant tags from dicom file.
 
     Args:
         dcm_file (str): Path to dicom file.
+        sleep_time_ms (float): Sleep time in milliseconds to wait before processing
+                               dicom file.
         kwargs: Arbitrary keyword arguments to pass to the `dcmread` function.
-                  In particular, the `stop_before_pixels` argument can be used
-                  to stop reading file before reading in pixel data when set to True.
+                In particular, the `stop_before_pixels` argument can be used
+                to stop reading file before reading in pixel data when set to True.
 
     Returns:
         json_dict: Dictionary representation of the Dataset conforming
                    to the DICOM JSON Model as described in the
                    DICOM Standard, Part 18
     """
+    if kwargs is None:
+        kwargs = {}
     logger = create_logger()
     logger.debug(f"Processing {dcm_file}")
     stop_before_pixels = kwargs.pop("stop_before_pixels", True)
@@ -201,15 +237,17 @@ def get_dcm_tags(dcm_file, kwargs):
         json_dict["filepath"] = dcm_file
     except Exception as e:
         logging.error(f"Error while processing {dcm_file}: {e}")
+        time.sleep(sleep_time_ms)
         return None
+    time.sleep(sleep_time_ms)
     return json_dict
 
 
 def get_dcm_tags_list(
     dcm_list: list,
-    parallel_mode: str = "multiprocessing",
+    process_handler: str = "multiprocessing",
     n_threads: int = 1,
-    batch_size: int = 10000,
+    sleep_time_ms: float = 0,
     **kwargs,
 ):
     """Extract list of dictionary representation of the DICOM files conforming to the DICOM JSON Model.
@@ -220,8 +258,12 @@ def get_dcm_tags_list(
 
     Args:
         dcm_list (list): List of dicom files to process.
-        n_threads (int): Number of threads to use for parallel processing.
-        parallel_mode (str): Parallelization mode. Can be either 'multiprocessing' or 'asyncio'.
+        process_handler (str): Process handler to use for parallel/asynchronous processing.
+                               Can be either 'multiprocessing' or 'asyncio'.
+        n_threads (int): Number of threads to use for parallel/asynchronous processing.
+                         Defaults to 1.
+        sleep_time_ms (float): Sleep time in milliseconds to wait between each file processing.
+                               Defaults to 0.
         **kwargs: Arbitrary keyword arguments to pass to the `dcmread` function.
 
     Returns:
@@ -231,23 +273,27 @@ def get_dcm_tags_list(
     References:
         https://pydicom.github.io/pydicom/dev/reference/generated/pydicom.dataset.Dataset.html#pydicom.dataset.Dataset.to_json_dict
     """
-    if n_threads > 1 and parallel_mode == "asyncio":
+    if n_threads > 1 and process_handler == "asyncio":
         nest_asyncio.apply()
         # Run asyncio tasks in a limited thread pool.
         with ThreadPoolExecutor(max_workers=n_threads) as executor:
             loop = asyncio.get_event_loop()
             tasks = [
-                loop.run_in_executor(executor, get_dcm_tags, dcm_file, kwargs)
+                loop.run_in_executor(
+                    executor, get_dcm_tags, dcm_file, sleep_time_ms, kwargs
+                )
                 for dcm_file in dcm_list
             ]
             try:
                 dcm_tags_list = loop.run_until_complete(tqdm_asyncio.gather(*tasks))
             finally:
                 loop.close()
-    elif n_threads > 1 and parallel_mode == "multiprocessing":
+    elif n_threads > 1 and process_handler == "multiprocessing":
         with Pool(n_threads) as p:
             # prepare arguments
-            args = zip(dcm_list, [kwargs] * len(dcm_list))
+            args = zip(
+                dcm_list, [sleep_time_ms] * len(dcm_list), [kwargs] * len(dcm_list)
+            )
             dcm_tags_list = tqdm.tqdm(
                 p.istarmap(
                     get_dcm_tags,
@@ -259,16 +305,20 @@ def get_dcm_tags_list(
             )
             dcm_tags_list = list(dcm_tags_list)
     else:
-        dcm_tags_list = [get_dcm_tags(dcm_file, kwargs) for dcm_file in dcm_list]
+        dcm_tags_list = [
+            get_dcm_tags(dcm_file, sleep_time_ms, kwargs) for dcm_file in dcm_list
+        ]
     return dcm_tags_list
 
 
-def write_json_file(json_file, json_dict):
+def write_json_file(json_file: str, json_dict: dict, sleep_time_ms: float = 0):
     """Write JSON file.
 
     Args:
         json_file (str): Path to JSON file.
         json_dict (dict): Dictionary to save in JSON file.
+        sleep_time_ms (float): Sleep time in milliseconds to wait after writing
+                               JSON file.
     """
     logger = create_logger()
 
@@ -277,12 +327,20 @@ def write_json_file(json_file, json_dict):
 
     if not os.path.exists(json_file):
         logger.warning(f"JSON file {json_file} not found")
+        time.sleep(sleep_time_ms)
         return None
 
+    time.sleep(sleep_time_ms)
     return json_file
 
 
-def write_json_files(json_dicts, output_dir, n_threads: int = 1, logger=None):
+def write_json_files(
+    json_dicts: list,
+    output_dir: str,
+    n_threads: int = 1,
+    sleep_time_ms: float = 0,
+    logger: logging.Logger = None,
+):
     """Write JSON files.
 
     Args:
@@ -313,6 +371,7 @@ def write_json_files(json_dicts, output_dir, n_threads: int = 1, logger=None):
                 for json_dict in json_dicts
             ],
             json_dicts,
+            [sleep_time_ms] * len(json_dicts),
         )
         with Pool(n_threads) as p:
             # prepare arguments
@@ -338,14 +397,14 @@ def write_json_files(json_dicts, output_dir, n_threads: int = 1, logger=None):
             dcm_file = json_dict["filepath"]
             dcm_file_basename = os.path.basename(dcm_file)
             json_file = os.path.join(output_dir, dcm_file_basename + ".json")
-            write_json_file(json_file, json_dict)
+            write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
             if os.path.exists(json_file):
                 json_files.append(json_file)
 
     return json_files
 
 
-def set_n_threads(n_threads, logger=None):
+def set_n_threads(n_threads: int, logger: logging.Logger = None):
     """Set number of threads to use for parallel processing.
 
     Args:
@@ -367,7 +426,7 @@ def set_n_threads(n_threads, logger=None):
     return n_threads
 
 
-def prepare_dcm_list_batches(dcm_list, batch_size):
+def prepare_dcm_list_batches(dcm_list: list, batch_size: int):
     """Prepare batches of dicom files to process.
 
     Args:
@@ -379,6 +438,8 @@ def prepare_dcm_list_batches(dcm_list, batch_size):
         list: List of batches of dicom files to process.
     """
     dcm_list_batches = []
+    if batch_size > len(dcm_list):
+        batch_size = len(dcm_list)
     for i in range(0, len(dcm_list), batch_size):
         dcm_list_batches.append(dcm_list[i : i + batch_size])
     return dcm_list_batches
@@ -432,27 +493,190 @@ def send_dcm_tags_list_to_elasticsearch(
     helpers.bulk(es, actions)
 
 
+def process_batches(
+    dcm_list_batches: list,
+    args: argparse.Namespace,
+    logger: logging.Logger = None,
+    kwargs: dict = None,
+):
+    """Process batches of dicom files.
+
+    Args:
+        dcm_list_batches (list): List of batches of dicom files to process.
+        args (argparse.Namespace): Arguments passed to the main function.
+        logger (logging.Logger): Logger object.
+        **kwargs: Arbitrary keyword arguments to pass to the `dcmread` function.
+
+    Returns:
+        tuple: Tuple containing:
+                   * the number of dicom files processed.
+                   * the number of dicom files skipped.
+                   * the total time spent for extracting tags from dicom files.
+                   * the total time spent for saving/uploading tags to JSON/Elasticsearch.
+    """
+    if logger is None:
+        logger = create_logger()
+
+    if kwargs is None:
+        kwargs = {}
+
+    total_dcm_processed, total_dcm_skipped = 0, 0
+    total_time_extraction = 0
+    total_time_save = 0
+
+    for i, dcm_list_batch in enumerate(dcm_list_batches):
+        logger.info(
+            f"Processing batch #{i+1} of {len(dcm_list_batches)} (batch size: {args.batch_size})"
+        )
+        # Extract tags from dicom files batch
+        tic_extraction = time.perf_counter()
+        dcm_tags_list_batch = get_dcm_tags_list(
+            dcm_list_batch,
+            process_handler=args.process_handler,
+            n_threads=args.n_threads,
+            sleep_time_ms=args.sleep_time_ms,
+            **kwargs,
+        )
+
+        # Remove None values
+        dcm_tags_list_batch = [
+            dcm_tags for dcm_tags in dcm_tags_list_batch if dcm_tags is not None
+        ]
+        toc_extraction = time.perf_counter()
+
+        # Save JSON files for each dicom file in batch
+        tic_save = time.perf_counter()
+        if args.dry_run:
+            write_json_files(
+                json_dicts=dcm_tags_list_batch,
+                output_dir=args.output_dir,
+                n_threads=args.n_threads,
+                sleep_time_ms=args.sleep_time_ms,
+                logger=logger,
+            )
+        else:
+            # Upload JSON representation of dicom files in batch to Elasticsearch
+            send_dcm_tags_list_to_elasticsearch(
+                dcm_tags_list=dcm_tags_list_batch, config=args.config, logger=logger
+            )
+        toc_save = time.perf_counter()
+
+        # Update counters
+        total_time_extraction += toc_extraction - tic_extraction
+        total_time_save += toc_save - tic_save
+        total_dcm_processed += len(dcm_tags_list_batch)
+        total_dcm_skipped += len(dcm_list_batch) - len(dcm_tags_list_batch)
+
+    return total_dcm_processed, total_dcm_skipped, total_time_extraction, total_time_save
+
+
+def append_profiler_results(
+    tsv_file: str,
+    n_threads: int,
+    batch_size: int,
+    process_handler: str,
+    max_memory_usage: float,
+    total_dcm_processed: int,
+    total_dcm_skipped: int,
+    total_time: float,
+    total_time_extraction: float,
+    total_time_save: float,
+):
+    """Append profiler results to profile file.
+
+    Args:
+        tsv_file (str): Path to output TSV file that will contain profiler results.
+        n_threads (int): Number of threads used for parallel processing.
+        batch_size (int): Batch size for extracting and saving/uploading
+                          metadata tags from dicom files.
+        process_handler (str): Process handler used for parallel/asynchronous processing.
+                               Can be either 'multiprocessing' or 'asyncio'.
+        max_memory_usage (float): Maximum memory usage.
+        total_dcm_processed (int): Total number of dicom files processed.
+        total_dcm_skipped (int): Total number of dicom files skipped.
+        total_time (float): Total elapsed time in seconds.
+        total_time_extraction (float): Total time spent for extracting tags
+                                       from dicom files (seconds).
+        total_time_save (float): Total time spent for saving/uploading tags
+                                 to JSON/Elasticsearch (seconds).
+    """
+    if os.path.exists(tsv_file):
+        mode = "a"
+    else:
+        mode = "w"
+
+    timestamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())
+
+    with open(tsv_file, mode) as f:
+        if mode == "w":  # write header at creation
+            f.write(
+                "\t".join(
+                    [
+                        "timestamp",
+                        "n_threads",
+                        "batch_size",
+                        "process_handler",
+                        "max_memory_usage",
+                        "total_dcm_processed",
+                        "total_dcm_skipped",
+                        "total_time",
+                        "total_time_extraction",
+                        "total_time_save",
+                    ]
+                )
+                + "\n"
+            )
+        f.write(
+            "\t".join(
+                [
+                    timestamp,
+                    str(n_threads),
+                    str(batch_size),
+                    process_handler,
+                    str(max_memory_usage),
+                    str(total_dcm_processed),
+                    str(total_dcm_skipped),
+                    str(total_time),
+                    str(total_time_extraction),
+                    str(total_time_save),
+                ]
+            )
+            + "\n"
+        )
+
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    # Set logging level
-    logging_level = args.log_level
+    if not args.profile and args.profile_tsv is not None:
+        parser.error(
+            "The following argument is required when --profile-tsv is specified: --profile"
+        )
 
     # Create logger
-    logger = create_logger(logging_level, args.output_dir)
+    logger = create_logger(args.log_level, args.output_dir)
     warnings.filterwarnings("ignore")
-
-    # Handle n_threads argument
-    # If n_threads is invalid, it is set to default value
-    # (1 if n_threads < 1, cpu_count() if n_threads > cpu_count()
-    args.n_threads = set_n_threads(args.n_threads, logger=logger)
 
     # Make sure path are absolute
     args.input_dcm_list = os.path.abspath(args.input_dcm_list)
     args.output_dir = os.path.abspath(args.output_dir)
     if args.config is not None:
         args.config = os.path.abspath(args.config)
+    if args.profile_tsv is not None:
+        args.profile_tsv = os.path.abspath(args.profile_tsv)
+
+    # Handle n_threads argument
+    # If n_threads is invalid, it is set to default value
+    # (1 if n_threads < 1, cpu_count() if n_threads > cpu_count()
+    args.n_threads = set_n_threads(args.n_threads, logger=logger)
+
+    # Handle output profile tsv file path if profile is specified
+    # but not profile_tsv
+    if args.profile and args.profile_tsv is None:
+        args.profile_tsv = os.path.join(
+            args.output_dir, os.path.basename(args.input_dcm_list) + ".profile.tsv"
+        )
 
     # Create output directory if it does not exist
     if not os.path.exists(args.output_dir):
@@ -477,46 +701,56 @@ def main():
     # Prepare batches of dicom files to process
     dcm_list_batches = prepare_dcm_list_batches(dcm_list, args.batch_size)
 
-    total_dcm_processed = 0
-    total_dcm_skipped = 0
+    if args.profile:
+        
+        # Process batches of dicom files with memory profiler
+        profiler_options = {
+            "interval": 0.5,
+            "multiprocess": True,
+            "retval": True,
+            "max_usage": True,
+            "backend": "psutil",
+        }
+        logger.info(f"Profiler options: {profiler_options}")
 
-    for i, dcm_list_batch in enumerate(dcm_list_batches):
-        logger.info(
-            f"Processing batch #{i+1} of {len(dcm_list_batches)} (batch size: {args.batch_size})"
+        tic = time.perf_counter()
+        (memory_usage, retval) = memory_profiler.memory_usage(
+            (process_batches, (dcm_list_batches, args, logger, kwargs)), **profiler_options
         )
-        # Extract tags from dicom files batch
-        dcm_tags_list_batch = get_dcm_tags_list(
-            dcm_list_batch,
-            n_threads=args.n_threads,
-            **kwargs,
+        toc = time.perf_counter()
+
+        # Unpack total_dcm_processed and total_dcm_skipped from retval
+        total_dcm_processed, total_dcm_skipped, total_time_extraction, total_time_save = retval
+
+        # Compute total elapsed time
+        total_time = toc - tic
+        
+        append_profiler_results(
+            args.profile_tsv,
+            args.n_threads,
+            args.batch_size,
+            args.process_handler,
+            memory_usage,
+            total_dcm_processed,
+            total_dcm_skipped,
+            total_time,
+            total_time_extraction,
+            total_time_save,
         )
-
-        # Remove None values
-        dcm_tags_list_batch = [
-            dcm_tags for dcm_tags in dcm_tags_list_batch if dcm_tags is not None
-        ]
-
-        # Save JSON files for each dicom file in batch
-        if args.dry_run:
-            write_json_files(
-                json_dicts=dcm_tags_list_batch,
-                output_dir=args.output_dir,
-                n_threads=args.n_threads,
-                logger=logger,
-            )
-        else:
-            # Upload JSON representation of dicom files in batch to Elasticsearch
-            send_dcm_tags_list_to_elasticsearch(
-                dcm_tags_list=dcm_tags_list_batch, config=args.config, logger=logger
-            )
-
-        # Update counters
-        total_dcm_processed += len(dcm_tags_list_batch)
-        total_dcm_skipped += len(dcm_list_batch) - len(dcm_tags_list_batch)
+    else:
+        # Process batches of dicom files
+        tic = time.perf_counter()
+        (total_dcm_processed, total_dcm_skipped, total_time_extraction, total_time_save) = process_batches(
+            dcm_list_batches, args, logger, kwargs
+        )
+        toc = time.perf_counter()
+        # Compute total elapsed time
+        total_time = toc - tic
 
     logger.info(f"Run summary:")
     logger.info(f"Number of dicom files processed: {total_dcm_processed}")
     logger.info(f"Number of dicom files skipped: {total_dcm_skipped}")
+    logger.info(f"Total time: {total_time:.2f} sec. (Extraction: {total_time_extraction:.2f} sec., Save: {total_time_save:.2f} sec.)")
     logger.info("Finished!")
 
     return 0
