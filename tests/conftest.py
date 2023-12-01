@@ -31,3 +31,13 @@ def io_path():
         shutil.rmtree(io_path)
     os.makedirs(io_path, exist_ok=True)
     return io_path
+
+
+@pytest.fixture(scope="module")
+def test_dcm_files_mega():
+    nb_files = 120000
+    # Make a list of 120000 times the same test DICOM file from pydicom
+    test_files = [
+        get_testdata_files(pattern="*MR_small.dcm")[0],
+    ] * nb_files
+    return test_files

@@ -101,13 +101,13 @@ def test_get_dcm_list(test_dcm_files, tmpdir):
 def test_get_dcm_tags(test_dcm_files):
     for dcm_file in test_dcm_files:
         # Test if get_dcm_tags returns a dictionary
-        assert isinstance(get_dcm_tags(dcm_file, {}), dict)
+        assert isinstance(get_dcm_tags(dcm_file), dict)
 
 
 def test_get_dcm_tags_wrong(test_gz_file):
     # Test if get_dcm_tags returns None if the file is not a DICOM file
     # Here we use a GZ file instead of a DICOM file
-    assert get_dcm_tags(test_gz_file, {}) == None
+    assert get_dcm_tags(test_gz_file) == None
 
 
 def test_get_dcm_tags_list_multiproc(test_dcm_files):
@@ -227,7 +227,7 @@ def test_dryrun_dicom2elk(script_runner, tmpdir, test_dcm_files, io_path):
 
 
 @pytest.mark.script_launch_mode("subprocess")
-def test_dryrun_dicom2elk_no_output_dir(script_runner, tmpdir, test_dcm_files, io_path):
+def test_dryrun_dicom2elk_no_output_dir(script_runner, tmpdir, test_dcm_files):
     # Create a temporary text file containing a list of DICOM files
     dcm_list_file = os.path.join(str(tmpdir.mkdir("output")), "dcm_list.txt")
     with open(dcm_list_file, "w") as f:
@@ -241,3 +241,49 @@ def test_dryrun_dicom2elk_no_output_dir(script_runner, tmpdir, test_dcm_files, i
         ).returncode
         == 2
     )
+
+
+@pytest.mark.parametrize("n_threads", [1, 2, 4, 8, 16, 31])
+@pytest.mark.parametrize("batch_size", [5000, 10000, 20000, 40000, 60000, 80000, 100000, 120000])
+@pytest.mark.parametrize("process_handler", ["multiprocessing", "asyncio"])
+@pytest.mark.script_launch_mode("subprocess")
+def test_dryrun_dicom2elk_profiling(
+    script_runner,
+    tmpdir,
+    test_dcm_files_mega,
+    io_path,
+    n_threads,
+    batch_size,
+    process_handler,
+):
+    # Create a temporary text file containing a list of DICOM files
+    dcm_list_file = os.path.join(str(tmpdir.mkdir("output")), "dcm_list.txt")
+    with open(dcm_list_file, "w") as f:
+        for dcm_file in test_dcm_files_mega:
+            f.write(dcm_file + "\n")
+
+    # Create a temporary directory for testing
+    output_dir = str(io_path)
+
+    # Run the script
+    ret = script_runner.run(
+        "dicom2elk",
+        "-i",
+        dcm_list_file,
+        "-o",
+        output_dir,
+        "--n-threads",
+        str(n_threads),
+        "--batch-size",
+        str(batch_size),
+        "--process-handler",
+        process_handler,
+        "--dry-run",
+        "--profile",
+    )
+
+    # Test if the script runs successfully
+    assert ret.success
+
+    # Test if the output profile file exists
+    assert os.path.exists(os.path.join(output_dir, "dcm_list.txt.profile.tsv"))
