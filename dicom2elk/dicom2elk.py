@@ -134,6 +134,14 @@ def get_parser():
         help="Number of threads to use for parallel processing",
     )
     parser.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=10000,
+        help="Batch size for extracting and saving/uploading "
+        "metadata tags from dicom files",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
@@ -197,7 +205,13 @@ def get_dcm_tags(dcm_file, kwargs):
     return json_dict
 
 
-def get_dcm_tags_list(dcm_list, n_threads=1, parallel_mode="multiprocessing", **kwargs):
+def get_dcm_tags_list(
+    dcm_list: list,
+    parallel_mode: str = "multiprocessing",
+    n_threads: int = 1,
+    batch_size: int = 10000,
+    **kwargs,
+):
     """Extract list of dictionary representation of the DICOM files conforming to the DICOM JSON Model.
 
     It uses the `to_json_dict` method of the pydicom package.
@@ -256,17 +270,26 @@ def write_json_file(json_file, json_dict):
         json_file (str): Path to JSON file.
         json_dict (dict): Dictionary to save in JSON file.
     """
+    logger = create_logger()
+
     with open(json_file, "w") as f:
         json.dump(json_dict, f, indent=4)
 
+    if not os.path.exists(json_file):
+        logger.warning(f"JSON file {json_file} not found")
+        return None
 
-def write_json_files(json_dicts, output_dir, logger=None):
+    return json_file
+
+
+def write_json_files(json_dicts, output_dir, n_threads: int = 1, logger=None):
     """Write JSON files.
 
     Args:
         json_dicts (list): List of dictionaries to save in JSON files
                            produced by `get_dcm_tags_list`.
         output_dir (str): Path to output directory.
+        n_threads (int): Number of threads to use for parallel processing.
         logger (logging.Logger): Logger object.
 
     Note:
@@ -280,19 +303,44 @@ def write_json_files(json_dicts, output_dir, logger=None):
         logger = create_logger()
 
     json_files = []
-    for json_dict in tqdm.tqdm(
-        json_dicts,
-        desc="Saving JSON files",
-        unit="file",
-    ):
-        dcm_file = json_dict["filepath"]
-        dcm_file_basename = os.path.basename(dcm_file)
-        json_file = os.path.join(output_dir, dcm_file_basename + ".json")
-        write_json_file(json_file, json_dict)
-        if os.path.exists(json_file):
-            json_files.append(json_file)
-        else:
-            logger.warning(f"JSON file {json_file} not found")
+
+    if n_threads > 1:
+        args = zip(
+            [
+                os.path.join(
+                    output_dir, os.path.basename(json_dict["filepath"]) + ".json"
+                )
+                for json_dict in json_dicts
+            ],
+            json_dicts,
+        )
+        with Pool(n_threads) as p:
+            # prepare arguments
+            json_files = tqdm.tqdm(
+                p.istarmap(
+                    write_json_file,
+                    args,
+                ),
+                total=len(json_dicts),
+                desc="Saving JSON files",
+                unit="file",
+            )
+            # remove None values
+            json_files = [
+                json_file for json_file in json_files if json_file is not None
+            ]
+    else:
+        for json_dict in tqdm.tqdm(
+            json_dicts,
+            desc="Saving JSON files",
+            unit="file",
+        ):
+            dcm_file = json_dict["filepath"]
+            dcm_file_basename = os.path.basename(dcm_file)
+            json_file = os.path.join(output_dir, dcm_file_basename + ".json")
+            write_json_file(json_file, json_dict)
+            if os.path.exists(json_file):
+                json_files.append(json_file)
 
     return json_files
 
@@ -317,6 +365,71 @@ def set_n_threads(n_threads, logger=None):
         logger.warning("Setting number of threads to the number of CPUs")
         n_threads = cpu_count()
     return n_threads
+
+
+def prepare_dcm_list_batches(dcm_list, batch_size):
+    """Prepare batches of dicom files to process.
+
+    Args:
+        dcm_list (list): List of dicom files to process.
+        batch_size (int): Batch size for extracting and saving/uploading
+                          metadata tags from dicom files.
+
+    Returns:
+        list: List of batches of dicom files to process.
+    """
+    dcm_list_batches = []
+    for i in range(0, len(dcm_list), batch_size):
+        dcm_list_batches.append(dcm_list[i : i + batch_size])
+    return dcm_list_batches
+
+
+def send_dcm_tags_list_to_elasticsearch(
+    dcm_tags_list: list, config: str, logger: logging.Logger = None
+):
+    """Send list of dictionary representation of the DICOM files to Elasticsearch.
+
+    Args:
+        dcm_tags_list (list): List of dictionary representation of the DICOM files.
+        config (str): Path to config file in JSON format which defines all variables
+                      related to Elasticsearch instance (url, port, index, user, pwd).
+        logger (logging.Logger): Logger object.
+
+    Note:
+        The dictionary representation of the DICOM files must contain a "filepath" key.
+        This key is used to identify the file in Elasticsearch.
+    """
+    if logger is None:
+        logger = create_logger()
+
+    # Load config file
+    config = get_config(config)
+
+    # Connect to Elasticsearch instance
+    es = Elasticsearch(
+        [config["url"]],
+        http_auth=(config["user"], config["pwd"]),
+        scheme="https",
+        port=config["port"],
+    )
+
+    # Create index
+    if es.indices.exists(config["index"]):
+        logger.warning(f"Index {config['index']} already exists")
+    else:
+        es.indices.create(config["index"])
+
+    # Bulk upload to Elasticsearch
+    actions = [
+        {
+            "_index": config["index"],
+            "_type": "_doc",
+            "_id": i,
+            "_source": dcm_tags,
+        }
+        for i, dcm_tags in enumerate(dcm_tags_list)
+    ]
+    helpers.bulk(es, actions)
 
 
 def main():
@@ -360,52 +473,52 @@ def main():
     kwargs = {
         "stop_before_pixels": True,
     }
-    # Extract tags from dicom files
-    dcm_tags_list = get_dcm_tags_list(
-        dcm_list,
-        n_threads=args.n_threads,
-        **kwargs,
-    )
 
-    # Remove None values
-    dcm_tags_list = [dcm_tags for dcm_tags in dcm_tags_list if dcm_tags is not None]
+    # Prepare batches of dicom files to process
+    dcm_list_batches = prepare_dcm_list_batches(dcm_list, args.batch_size)
 
-    # Save JSON files
-    if args.dry_run:
-        write_json_files(dcm_tags_list, args.output_dir)
-    else:
-        # Load config file
-        config = get_config(args.config)
+    total_dcm_processed = 0
+    total_dcm_skipped = 0
 
-        # Connect to Elasticsearch instance
-        es = Elasticsearch(
-            [config["url"]],
-            http_auth=(config["user"], config["pwd"]),
-            scheme="https",
-            port=config["port"],
+    for i, dcm_list_batch in enumerate(dcm_list_batches):
+        logger.info(
+            f"Processing batch #{i+1} of {len(dcm_list_batches)} (batch size: {args.batch_size})"
+        )
+        # Extract tags from dicom files batch
+        dcm_tags_list_batch = get_dcm_tags_list(
+            dcm_list_batch,
+            n_threads=args.n_threads,
+            **kwargs,
         )
 
-        # Create index
-        if es.indices.exists(config["index"]):
-            logger.warning(f"Index {config['index']} already exists")
-        else:
-            es.indices.create(config["index"])
-
-        # Bulk upload to Elasticsearch
-        actions = [
-            {
-                "_index": config["index"],
-                "_type": "_doc",
-                "_id": i,
-                "_source": dcm_tags,
-            }
-            for i, dcm_tags in enumerate(dcm_tags_list)
+        # Remove None values
+        dcm_tags_list_batch = [
+            dcm_tags for dcm_tags in dcm_tags_list_batch if dcm_tags is not None
         ]
-        helpers.bulk(es, actions)
 
-    logger.info(f"Number of dicom files processed: {len(dcm_tags_list)}")
-    logger.info(f"Number of dicom files skipped: {len(dcm_list) - len(dcm_tags_list)}")
+        # Save JSON files for each dicom file in batch
+        if args.dry_run:
+            write_json_files(
+                json_dicts=dcm_tags_list_batch,
+                output_dir=args.output_dir,
+                n_threads=args.n_threads,
+                logger=logger,
+            )
+        else:
+            # Upload JSON representation of dicom files in batch to Elasticsearch
+            send_dcm_tags_list_to_elasticsearch(
+                dcm_tags_list=dcm_tags_list_batch, config=args.config, logger=logger
+            )
+
+        # Update counters
+        total_dcm_processed += len(dcm_tags_list_batch)
+        total_dcm_skipped += len(dcm_list_batch) - len(dcm_tags_list_batch)
+
+    logger.info(f"Run summary:")
+    logger.info(f"Number of dicom files processed: {total_dcm_processed}")
+    logger.info(f"Number of dicom files skipped: {total_dcm_skipped}")
     logger.info("Finished!")
+
     return 0
 
 
