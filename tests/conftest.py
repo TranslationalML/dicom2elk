@@ -2,6 +2,7 @@
 #  This software is distributed under the open-source Apache 2.0 license.
 
 import os
+import shutil
 import pytest
 from pydicom.data import get_testdata_files
 
@@ -25,6 +26,8 @@ def io_path():
     # Set the path to the input/output directory for test that lies
     # in the same directory as this file
     io_path = os.path.join(os.path.dirname(__file__), "io")
-    if not os.path.exists(io_path):
-        os.makedirs(io_path, exist_ok=True)
+    # Clean the input/output directory if it already exists
+    if os.path.exists(io_path):
+        shutil.rmtree(io_path)
+    os.makedirs(io_path, exist_ok=True)
     return io_path
