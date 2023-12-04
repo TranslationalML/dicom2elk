@@ -121,3 +121,20 @@ options:
                         Specify a TSV file to save mem/perf profiling results.
   -v, --version         show program's version number and exit
 ```
+
+**Example**:
+
+* Create a list of 10000 dicom files in a text file:
+
+  ```bash
+  nb_of_files=10000
+  find "/path/to/directory/containg/dicoms" -name "*" -type f | head "-${nb_of_files}" > dicom_list_${nb_of_files}.txt
+  ```
+
+* Run dicom2elk with the text file created before:
+  
+  ```bash
+  dicom2elk --dry-run -i dicom_list_10000.txt -o /path/of/output/dir --n-threads 12
+  ```
+
+  where `/path/of/output/dir` defines the directory where the out JSON and log files will be placed.
