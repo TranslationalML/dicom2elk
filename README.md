@@ -24,51 +24,51 @@ We recommend using a virtual or conda environment to isolate the dependencies of
 
 **Option 1**: To create a virtual environment, you can use the following command:
 
-    ```bash
-    python3 -m venv .venv
-    ```
+```bash
+python3 -m venv .venv
+```
 
-    Note that you may have to install [`pip`](https://pip.pypa.io/en/stable/) and [`venv`](https://docs.python.org/3/library/venv.html) if you don't have them already installed on your system. This can be done as follows:
+Note that you may have to install [`pip`](https://pip.pypa.io/en/stable/) and [`venv`](https://docs.python.org/3/library/venv.html) if you don't have them already installed on your system. This can be done as follows:
 
-        ```bash
-        sudo apt-get install python3-pip
-        pip install virtualenv
-        ```
-    
-    Then, activate the created environment:
+```bash
+sudo apt-get install python3-pip
+pip install virtualenv
+```
 
-    ```bash
-    source venv/bin/activate
-    ```
+Then, activate the created environment:
 
-    To deactivate it:
+```bash
+source venv/bin/activate
+```
 
-    ```bash
-    deactivate
-    ```
+To deactivate it:
+
+```bash
+deactivate
+```
 
 
 **Option 2**: To create a conda environment, you will need miniconda or micromamba installed, the later the prefered (which appeared to be more efficient). To install micromamba, run the following command:
 
-    ```bash
-    "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
-    ```
+```bash
+"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+```
 
-    You might need to open a new Terminal to finalize the installation. Please consult the [official docs](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) for more details.
+You might need to open a new Terminal to finalize the installation. Please consult the [official docs](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html) for more details.
 
-    Then, install the environment:
+Then, install the environment:
 
-    ```bash
-    micromamba env create -f conda/environment.yml
-    ```
+```bash
+micromamba env create -f conda/environment.yml
+```
 
-    This will create a dedicated Python 3.10 environment named `dicom2elk` with all depedencies installed.
+This will create a dedicated Python 3.10 environment named `dicom2elk` with all depedencies installed.
 
-    Then, do not forget to activate the environment with the following command:
+Then, do not forget to activate the environment with the following command:
 
-    ```bash
-    micromamba activate dicom2elk
-    ```
+```bash
+micromamba activate dicom2elk
+```
 
 ### Install `dicom2elk` package with `pip`
 
