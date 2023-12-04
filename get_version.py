@@ -11,7 +11,7 @@ import os.path as op
 
 def main():
     sys.path.insert(0, op.abspath("."))
-    from dicom2elk import __version__
+    from dicom2elk.info import __version__
 
     print(__version__)
     return __version__
