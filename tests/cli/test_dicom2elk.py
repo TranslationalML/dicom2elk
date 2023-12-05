@@ -28,7 +28,8 @@ def test_dryrun_dicom2elk(script_runner, tmpdir, test_dcm_files, io_path):
         "--n-threads",
         "2",
         "--mode",
-        "json"
+        "json",
+        "--profile",
     )
 
     # Test if the script runs successfully
