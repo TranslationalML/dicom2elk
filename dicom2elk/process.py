@@ -126,6 +126,7 @@ def process_batches_optimized(
             dcm_list_batch,
             output_dir=args.output_dir,
             process_handler=args.process_handler,
+            mode=args.mode,
             n_threads=args.n_threads,
             sleep_time_ms=args.sleep_time_ms,
             logger=logger,

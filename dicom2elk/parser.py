@@ -35,13 +35,16 @@ def get_parser():
         type=str,
         required=True,
         help="Specify an output directory to save the log file. "
-        "If --dry-run is specified, all JSON files are also saved in this directory",
+        "If `--mode json` is specified, all JSON files are also saved in this directory",
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="When specified, extracted tags for each dicom file of the list are "
-        "saved in distinct JSON files in the output directory",
+        "-m",
+        "--mode",
+        type=str,
+        default="json",
+        choices=["json", "elasticsearch"],
+        help="Specify the mode to use for saving the extracted metadata tags."
+        "Can be either 'json' or 'elasticsearch'",
     )
     parser.add_argument(
         "-l",

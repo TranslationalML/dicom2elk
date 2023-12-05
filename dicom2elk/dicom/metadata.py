@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
 from dicom2elk.io import write_json_file
 from dicom2elk.logging import create_logger
+from dicom2elk.elasticsearch.api import send_bulk_to_elasticsearch
 
 
 from pydicom import dcmread
@@ -129,7 +130,7 @@ def get_dcm_tags_list(
 
 def extract_metadata_from_dcm(
     dcm_file: str,
-    save_json: bool = False,
+    mode: str = "json",
     sleep_time_ms: float = 0.0,
     output_dir: str = None,
     logger: logging.Logger = create_logger("INFO"),
@@ -140,9 +141,8 @@ def extract_metadata_from_dcm(
     Args:
         dcm_file (str): Path to dicom file.
         sleep_time_ms (float): Sleep time in milliseconds to wait after processing
-        save_json (bool): When set to True, extracted tags for each dicom file of the list are
-                          saved in distinct JSON files in the output directory. If save_json is
-                          set to True, output_dir must be specified.
+        mode (str): Mode to use for saving the extracted metadata tags.
+                    Can be either 'json' or 'elasticsearch'.
         output_dir (str): Path to output directory.
         logger (logging.Logger): Logger object.
         kwargs: Arbitrary keyword arguments to pass to the `dcmread` function.
@@ -156,18 +156,16 @@ def extract_metadata_from_dcm(
                                              or path to JSON file (if `output_dir` specified).
 
     Raises:
-        ValueError: If save_json is set to True and output_dir is not specified.
+        ValueError: If `mode` is set to 'json' and `output_dir` is not specified.
+        ValueError: If `mode` is set to 'elasticsearch' and `config` is not specified.
     """
-    if save_json and output_dir is None:
-        raise ValueError("If save_json is set to True, output_dir must be specified.")
+    if mode == "json" and output_dir is None:
+        raise ValueError("If mode is set to 'json', output_dir must be specified.")
 
     if kwargs is None:
         kwargs = {}
 
     logger.debug(f"Processing {dcm_file}")
-
-    if output_dir is None:
-        save_json = False
 
     stop_before_pixels = kwargs.pop("stop_before_pixels", True)
     try:
@@ -175,7 +173,7 @@ def extract_metadata_from_dcm(
         json_dict = dcm_dataset.to_json_dict()
         json_dict["filepath"] = dcm_file
 
-        if save_json:
+        if mode == "json":
             json_file = os.path.join(output_dir, os.path.basename(dcm_file) + ".json")
             return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
 
@@ -191,7 +189,9 @@ def extract_metadata_from_dcm(
 def extract_metadata_from_dcm_list(
     dcm_list: list,
     output_dir: str = None,
+    config: dict = None,
     process_handler: str = "multiprocessing",
+    mode: str = "json",
     n_threads: int = 1,
     sleep_time_ms: float = 0,
     logger: logging.Logger = create_logger("INFO"),
@@ -206,8 +206,11 @@ def extract_metadata_from_dcm_list(
     Args:
         dcm_list (list): List of dicom files to process.
         output_dir (str): Path to output directory.
+        config (dict): Dictionary containing the Elasticsearch configuration.
         process_handler (str): Process handler to use for parallel/asynchronous processing.
                                Can be either 'multiprocessing' or 'asyncio'.
+        mode (str): Mode to use for saving the extracted metadata tags.
+                    Can be either 'json' or 'elasticsearch'.
         n_threads (int): Number of threads to use for parallel/asynchronous processing.
                          Defaults to 1.
         sleep_time_ms (float): Sleep time in milliseconds to wait between each file processing.
@@ -219,16 +222,25 @@ def extract_metadata_from_dcm_list(
         list: List of dictionary representation of the DICOM files conforming to the
               `DICOM JSON Model <http://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_F.html>`_.
 
+    Raises:
+        ValueError: If `mode` is set to 'json' and `output_dir` is not specified.
+        ValueError: If `mode` is set to 'elasticsearch' and `config` is not specified.
+
     References:
         https://pydicom.github.io/pydicom/dev/reference/generated/pydicom.dataset.Dataset.html#pydicom.dataset.Dataset.to_json_dict
     """
-    save_json = True
+    if mode == "json" and output_dir is None:
+        raise ValueError("If mode is set to 'json', output_dir must be specified.")
+
+    if mode == "elasticsearch" and config is None:
+        raise ValueError("If mode is set to 'elasticsearch', config must be specified.")
+
     if n_threads > 1:
         with Pool(n_threads) as p:
             # prepare arguments
             args = zip(
                 dcm_list,
-                [save_json] * len(dcm_list),
+                [mode] * len(dcm_list),
                 [sleep_time_ms] * len(dcm_list),
                 [output_dir] * len(dcm_list),
                 [logger] * len(dcm_list),
@@ -259,7 +271,7 @@ def extract_metadata_from_dcm_list(
         processed_dcm_list = [
             extract_metadata_from_dcm(
                 dcm_file,
-                save_json=save_json,
+                mode=mode,
                 sleep_time_ms=sleep_time_ms,
                 output_dir=output_dir,
                 logger=logger,
@@ -267,4 +279,16 @@ def extract_metadata_from_dcm_list(
             )
             for dcm_file in dcm_list
         ]
+
+    if mode == "elasticsearch":
+        processed_dcm_list = [
+            processed_dcm
+            for processed_dcm in processed_dcm_list
+            if processed_dcm is not None
+        ]
+        send_bulk_to_elasticsearch(
+            dcm_tags_list=processed_dcm_list,
+            config=config,
+            logger=logger,
+        )
     return processed_dcm_list
