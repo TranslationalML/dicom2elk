@@ -11,7 +11,7 @@ import warnings
 
 from dicom2elk.info import __packagename__, __version__, __copyright__
 from dicom2elk.cli.parser import get_parser
-from dicom2elk.core.process import process_batches_optimized
+from dicom2elk.core.process import process_batches
 from dicom2elk.utils.io import read_dcm_list_file
 from dicom2elk.utils.logging import create_logger
 from dicom2elk.utils.config import set_n_threads
@@ -92,7 +92,7 @@ def main():
         #     **profiler_options,
         # )
         (memory_usage, retval) = memory_profiler.memory_usage(
-            (process_batches_optimized, (dcm_list_batches, args, logger, kwargs)),
+            (process_batches, (dcm_list_batches, args, logger, kwargs)),
             **profiler_options,
         )
         toc = time.perf_counter()
@@ -128,7 +128,7 @@ def main():
             total_dcm_skipped,
             # total_time_extraction,
             # total_time_save,
-        ) = process_batches_optimized(dcm_list_batches, args, logger, kwargs)
+        ) = process_batches(dcm_list_batches, args, logger, kwargs)
         toc = time.perf_counter()
         # Compute total elapsed time
         total_time = toc - tic

@@ -3,129 +3,17 @@
 
 """Module that provides functions to convert DICOM files to JSON files."""
 
-
 import os
-import nest_asyncio
 import tqdm
-from tqdm.asyncio import tqdm_asyncio
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+import logging
+import time
 from multiprocessing import Pool
-from dicom2elk.utils.io import write_json_file
-from dicom2elk.utils.logging import create_logger
-from dicom2elk.core.elasticsearch.api import send_bulk_to_elasticsearch
-
 
 from pydicom import dcmread
 
-
-import logging
-import time
-
-
-def get_dcm_tags(
-    dcm_file: str,
-    sleep_time_ms: str = 0,
-    logger: logging.Logger = create_logger("INFO"),
-    kwargs: dict = None,
-):
-    """Extract relevant tags from dicom file.
-
-    Args:
-        dcm_file (str): Path to dicom file.
-        sleep_time_ms (float): Sleep time in milliseconds to wait before processing
-                               dicom file.
-        kwargs: Arbitrary keyword arguments to pass to the `dcmread` function.
-                In particular, the `stop_before_pixels` argument can be used
-                to stop reading file before reading in pixel data when set to True.
-
-    Returns:
-        json_dict: Dictionary representation of the Dataset conforming
-                   to the DICOM JSON Model as described in the
-                   DICOM Standard, Part 18
-    """
-    if kwargs is None:
-        kwargs = {}
-    logger.debug(f"Processing {dcm_file}")
-    stop_before_pixels = kwargs.pop("stop_before_pixels", True)
-    try:
-        dcm_dataset = dcmread(dcm_file, stop_before_pixels=stop_before_pixels)
-        json_dict = dcm_dataset.to_json_dict()
-        json_dict["filepath"] = dcm_file
-    except Exception as e:
-        logger.error(f"Error while processing {dcm_file}: {e}")
-        time.sleep(sleep_time_ms)
-        return None
-    time.sleep(sleep_time_ms)
-    return json_dict
-
-
-def get_dcm_tags_list(
-    dcm_list: list,
-    process_handler: str = "multiprocessing",
-    n_threads: int = 1,
-    sleep_time_ms: float = 0,
-    **kwargs,
-):
-    """Extract list of dictionary representation of the DICOM files conforming to the DICOM JSON Model.
-
-    It uses the `to_json_dict` method of the pydicom package.
-
-    It can be parallelized using the `n_threads` argument which leverages the asyncio package.
-
-    Args:
-        dcm_list (list): List of dicom files to process.
-        process_handler (str): Process handler to use for parallel/asynchronous processing.
-                               Can be either 'multiprocessing' or 'asyncio'.
-        n_threads (int): Number of threads to use for parallel/asynchronous processing.
-                         Defaults to 1.
-        sleep_time_ms (float): Sleep time in milliseconds to wait between each file processing.
-                               Defaults to 0.
-        **kwargs: Arbitrary keyword arguments to pass to the `dcmread` function.
-
-    Returns:
-        list: List of dictionary representation of the DICOM files conforming to the
-              `DICOM JSON Model <http://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_F.html>`_.
-
-    References:
-        https://pydicom.github.io/pydicom/dev/reference/generated/pydicom.dataset.Dataset.html#pydicom.dataset.Dataset.to_json_dict
-    """
-    if n_threads > 1 and process_handler == "asyncio":
-        nest_asyncio.apply()
-        # Run asyncio tasks in a limited thread pool.
-        with ThreadPoolExecutor(max_workers=n_threads) as executor:
-            loop = asyncio.get_event_loop()
-            tasks = [
-                loop.run_in_executor(
-                    executor, get_dcm_tags, dcm_file, sleep_time_ms, kwargs
-                )
-                for dcm_file in dcm_list
-            ]
-            try:
-                dcm_tags_list = loop.run_until_complete(tqdm_asyncio.gather(*tasks))
-            finally:
-                loop.close()
-    elif n_threads > 1 and process_handler == "multiprocessing":
-        with Pool(n_threads) as p:
-            # prepare arguments
-            args = zip(
-                dcm_list, [sleep_time_ms] * len(dcm_list), [kwargs] * len(dcm_list)
-            )
-            dcm_tags_list = tqdm.tqdm(
-                p.istarmap(
-                    get_dcm_tags,
-                    args,
-                ),
-                total=len(dcm_list),
-                desc="Extracting tags",
-                unit="file",
-            )
-            dcm_tags_list = list(dcm_tags_list)
-    else:
-        dcm_tags_list = [
-            get_dcm_tags(dcm_file, sleep_time_ms, kwargs) for dcm_file in dcm_list
-        ]
-    return dcm_tags_list
+from dicom2elk.utils.io import write_json_file
+from dicom2elk.utils.logging import create_logger
+from dicom2elk.core.elasticsearch.api import send_bulk_to_elasticsearch
 
 
 def extract_metadata_from_dcm(

@@ -7,11 +7,11 @@ from argparse import Namespace
 import os
 import sys
 
-from dicom2elk.core.process import process_batches_optimized
+from dicom2elk.core.process import process_batches
 from dicom2elk.utils.logging import create_logger
 
 
-def test_process_batches_optimized(test_dcm_files, io_path):
+def test_process_batches(test_dcm_files, io_path):
     args = Namespace(
         **{
             "n_threads": 2,
@@ -33,9 +33,9 @@ def test_process_batches_optimized(test_dcm_files, io_path):
         for i in range(0, len(test_dcm_files), args.batch_size)
     ]
 
-    # Test if process_batches_optimized returns a list of dictionaries
+    # Test if process_batches returns a list of dictionaries
     # if the number of threads is set to 2 and the method is set to asyncio
-    nb_dcm_processed, nb_dcm_skipped = process_batches_optimized(
+    nb_dcm_processed, nb_dcm_skipped = process_batches(
         test_dcm_files_batches, args=args, kwargs=kwargs,
     )
 
