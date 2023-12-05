@@ -54,7 +54,7 @@ build-docker:
 
 #install-python: @ Installs the python package
 install-python:
-	pip install -e .[all]
+	pip install .[all]
 
 #install-python-wheel: @ Installs the python wheel
 install-python-wheel: build-python-wheel
