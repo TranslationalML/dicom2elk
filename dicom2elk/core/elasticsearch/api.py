@@ -4,8 +4,8 @@
 """Module that provides functions to interact with Elasticsearch using the Python API."""
 
 
-from dicom2elk.config import get_config
-from dicom2elk.logging import create_logger
+from dicom2elk.utils.config import get_config
+from dicom2elk.utils.logging import create_logger
 
 
 from elasticsearch import Elasticsearch, helpers
@@ -54,3 +54,4 @@ def send_bulk_to_elasticsearch(
         for i, dcm_tags in enumerate(dcm_tags_list)
     ]
     helpers.bulk(es, actions)
+

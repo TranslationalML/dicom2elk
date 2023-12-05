@@ -7,26 +7,16 @@ import os
 import sys
 import time
 import memory_profiler
-
-
 import warnings
 
-
-from dicom2elk.logging import create_logger
-
-from dicom2elk.config import set_n_threads
 from dicom2elk.info import __packagename__, __version__, __copyright__
-from dicom2elk.io import read_dcm_list_file
-
-
-# This has to be imported before importing multiprocessing Pool
-# See https://stackoverflow.com/questions/57354700/starmap-combined-with-tqdm
-from dicom2elk.istarmap import istarmap  # noqa: E402
-
-from dicom2elk.parser import get_parser
-from dicom2elk.process import process_batches_optimized
-from dicom2elk.profiling import append_profiler_results
-from dicom2elk.utils import prepare_dcm_list_batches
+from dicom2elk.cli.parser import get_parser
+from dicom2elk.core.process import process_batches_optimized
+from dicom2elk.utils.io import read_dcm_list_file
+from dicom2elk.utils.logging import create_logger
+from dicom2elk.utils.config import set_n_threads
+from dicom2elk.utils.profiling import append_profiler_results
+from dicom2elk.utils.misc import prepare_dcm_list_batches
 
 
 def main():

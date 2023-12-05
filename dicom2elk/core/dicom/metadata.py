@@ -11,9 +11,9 @@ from tqdm.asyncio import tqdm_asyncio
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
-from dicom2elk.io import write_json_file
-from dicom2elk.logging import create_logger
-from dicom2elk.elasticsearch.api import send_bulk_to_elasticsearch
+from dicom2elk.utils.io import write_json_file
+from dicom2elk.utils.logging import create_logger
+from dicom2elk.core.elasticsearch.api import send_bulk_to_elasticsearch
 
 
 from pydicom import dcmread
@@ -265,7 +265,7 @@ def extract_metadata_from_dcm_list(
                         desc="Extracting and saving tags",
                         unit="file",
                     ),
-                )
+                ).get()
             processed_dcm_list = list(processed_dcm_list)
     else:
         processed_dcm_list = [

@@ -7,7 +7,7 @@
 import json
 import logging
 
-from dicom2elk.logging import create_logger
+from dicom2elk.utils.logging import create_logger
 from os import cpu_count
 
 

@@ -57,9 +57,9 @@ def create_logger(level=logging.INFO, output_dir: str = None):
     # See https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
     if not len(_logger.handlers): 
         _logger.addHandler(_handler)
-        if output_dir is not None:
-            _log_file = os.path.join(output_dir, "dicom2elk.log")
-            _handler = logging.FileHandler(_log_file)
-            _handler.setFormatter(CustomFormatter())
-            _logger.addHandler(_handler)
+    if output_dir is not None:
+        _log_file = os.path.join(output_dir, "dicom2elk.log")
+        _handler = logging.FileHandler(_log_file)
+        _handler.setFormatter(CustomFormatter())
+        _logger.addHandler(_handler)
     return _logger

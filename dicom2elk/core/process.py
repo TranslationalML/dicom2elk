@@ -4,10 +4,10 @@
 """Module that defines functions to process DICOM files and metadata."""
 
 
-from dicom2elk.dicom.metadata import extract_metadata_from_dcm_list, get_dcm_tags_list
-from dicom2elk.elasticsearch.api import send_bulk_to_elasticsearch
-from dicom2elk.io import write_json_files
-from dicom2elk.logging import create_logger
+from dicom2elk.core.dicom.metadata import extract_metadata_from_dcm_list, get_dcm_tags_list
+from dicom2elk.core.elasticsearch.api import send_bulk_to_elasticsearch
+from dicom2elk.utils.io import write_json_files
+from dicom2elk.utils.logging import create_logger
 
 
 import argparse
@@ -111,8 +111,6 @@ def process_batches_optimized(
         tuple: Tuple containing:
                    * the number of dicom files processed.
                    * the number of dicom files skipped.
-                   * the total time spent for extracting tags from dicom files.
-                   * the total time spent for saving/uploading tags to JSON/Elasticsearch.
     """
     if kwargs is None:
         kwargs = {}

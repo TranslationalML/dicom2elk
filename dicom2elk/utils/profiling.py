@@ -3,7 +3,6 @@
 
 """Module for defining profiling related functions."""
 
-
 import os
 import time
 

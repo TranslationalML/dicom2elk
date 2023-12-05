@@ -6,7 +6,7 @@
 
 import tqdm
 from multiprocessing import Pool
-from dicom2elk.logging import create_logger
+from dicom2elk.utils.logging import create_logger
 
 
 import json

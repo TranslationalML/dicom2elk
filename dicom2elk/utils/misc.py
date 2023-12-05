@@ -1,7 +1,7 @@
 # Copyright (C) 2023, The TranslationalML team and Contributors. All rights reserved.
 #  This software is distributed under the open-source Apache 2.0 license.
 
-"""Module for utility functions."""
+"""Module for miscellaneous functions."""
 
 
 def prepare_dcm_list_batches(dcm_list: list, batch_size: int):
