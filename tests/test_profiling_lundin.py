@@ -69,9 +69,9 @@ def output_dir():
 #     assert os.path.exists(os.path.join(output_dir, "dcm_list.txt.profile.tsv"))
 
 
-@pytest.mark.parametrize("n_threads", [1, 2, 4, 8, 16, 31])
-@pytest.mark.parametrize("batch_size", [5000, 10000, 20000, 40000, 60000, 120000])
-@pytest.mark.parametrize("process_handler", ["multiprocessing"])
+@pytest.mark.parametrize("n_threads", [31, 16, 8, 4, 2, 1])
+@pytest.mark.parametrize("batch_size", [10000, 20000, 40000, 60000])
+@pytest.mark.parametrize("process_handler", ["multiprocessing", "asyncio"])
 @pytest.mark.script_launch_mode("subprocess")
 def test_dryrun_dicom2elk_profiling(
     script_runner,
