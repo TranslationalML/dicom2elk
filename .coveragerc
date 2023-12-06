@@ -5,6 +5,7 @@ concurrency = multiprocessing
 parallel = True
 source = dicom2elk
 omit = 
+    **/__init__.py
 
 [report]
 omit = 

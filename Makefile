@@ -28,21 +28,20 @@ GROUP_ID = $(shell id -g $(USER))
 # Force to use buildkit for building the Docker image
 export DOCKER_BUILDKIT=1
 
-#test: @ Run all tests
-.PHONY: test
-test:
+#tests: @ Run all tests
+.PHONY: tests
+tests:
 	@echo "Running pytest tests..."
-	docker run -t --rm \
+	docker run --rm \
 		--entrypoint "/entrypoint_pytest.sh" \
 		-v $(PROJECT_DIR)/tests:/tests \
-		-v $(PROJECT_DIR)/dicom2elk:/apps/dicom2elk/dicom2elk \
-		-u $(USER_ID):$(GROUP_ID) \
+		-v $(PROJECT_DIR)/dicom2elk:/app/dicom2elk \
 		$(IMAGE_TAG) \
-		/test
+		/tests
 	@echo "Fix path in coverage xml report..."
 	sed -i -r  \
-		"s|/apps/datahipy/datahipy|$(PROJECT_DIR)/datahipy|g" \
-		$(PROJECT_DIR)/test/report/cov.xml
+		"s|/app/dicom2elk|$(PROJECT_DIR)/dicom2elk|g" \
+		$(PROJECT_DIR)/tests/report/cov.xml
 
 #build-docker: @ Builds the Docker image
 build-docker:
@@ -54,7 +53,7 @@ build-docker:
 
 #install-python: @ Installs the python package
 install-python:
-	pip install -e .[all]
+	pip install .[all]
 
 #install-python-wheel: @ Installs the python wheel
 install-python-wheel: build-python-wheel

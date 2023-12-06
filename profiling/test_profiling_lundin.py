@@ -4,6 +4,7 @@
 import os
 import pytest
 import glob
+import shutil
 
 
 @pytest.fixture(scope="session")
@@ -18,8 +19,9 @@ def test_real_dcm_files():
 @pytest.fixture(scope="session")
 def output_dir():
     output_dir = "/home/stourbie/Code/GitHub/dicom2elk/results"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
     return output_dir
 
 
@@ -69,9 +71,9 @@ def output_dir():
 #     assert os.path.exists(os.path.join(output_dir, "dcm_list.txt.profile.tsv"))
 
 
-@pytest.mark.parametrize("n_threads", [1, 2, 4, 8, 16, 31])
-@pytest.mark.parametrize("batch_size", [5000, 10000, 20000, 40000, 60000, 120000])
-@pytest.mark.parametrize("process_handler", ["multiprocessing"])
+@pytest.mark.parametrize("n_threads", [31, 16, 8, 4, 2, 1])
+@pytest.mark.parametrize("batch_size", [10000, 20000, 40000, 60000])
+@pytest.mark.parametrize("process_handler", ["asyncio", "multiprocessing"])
 @pytest.mark.script_launch_mode("subprocess")
 def test_dryrun_dicom2elk_profiling(
     script_runner,
@@ -103,7 +105,8 @@ def test_dryrun_dicom2elk_profiling(
         str(batch_size),
         "--process-handler",
         process_handler,
-        "--dry-run",
+        "--mode",
+        "json",
         "--profile",
         "--profile-tsv",
         os.path.join(output_dir, "lundin_dcm_list.txt.profile.tsv")
