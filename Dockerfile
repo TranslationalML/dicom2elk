@@ -31,7 +31,7 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
 # Copy project files
 COPY dicom2elk/ dicom2elk/
-COPY setup.py setup.cfg README.md get_version.py Makefile ./
+COPY .coveragerc setup.py setup.cfg README.md get_version.py Makefile ./
 
 # Install dicom2elk with static version taken from the argument
 ARG VERSION=unknown 
@@ -40,8 +40,26 @@ RUN pip install -e .[test] \
     && pip install pytest-order
 
 ###############################################################################
-# Entrypoint
+# Create initial folders for testing / code coverage with correct permissions
 ###############################################################################
+
+# Create directories for reporting tests and code coverage
+RUN mkdir -p "/tests/report" && chmod -R 775 "/tests"
+
+###############################################################################
+# Set environment variables
+###############################################################################
+
+# Set the environment variable for .coverage file
+ENV COVERAGE_FILE="/tests/report/.coverage"
+
+###############################################################################
+# Configure the entrypoint scripts
+###############################################################################
+
+# Copy the pytest entrypoint script and make it executable
+COPY scripts/entrypoint_pytest.sh /entrypoint_pytest.sh
+RUN chmod +x /entrypoint_pytest.sh
 
 # Create entrypoint to run dicom2elk executable script in dicom2elk environment
 ENTRYPOINT ["micromamba", "run", "-n", "base", "dicom2elk"]
