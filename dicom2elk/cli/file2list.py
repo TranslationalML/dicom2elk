@@ -4,7 +4,8 @@ import sys
 from datetime import datetime
 import time
 
-from file2list_parser import get_parser
+from dicom2elk.cli.parser import get_file2list_parser
+
 
 DB_FILE = 'file_abs_database.db'
 BATCH_SIZE = 500
@@ -61,7 +62,7 @@ def closing_connection(db_connection, batch, out):
 
 
 def main():
-    parser = get_parser()
+    parser = get_file2list_parser()
     args = parser.parse_args()
 
     # Make sure path are absolute

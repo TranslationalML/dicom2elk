@@ -10,7 +10,7 @@ import memory_profiler
 import warnings
 
 from dicom2elk.info import __packagename__, __version__, __copyright__
-from dicom2elk.cli.parser import get_parser
+from dicom2elk.cli.parser import get_dicom2elk_parser
 from dicom2elk.core.process import process_batches
 from dicom2elk.utils.io import read_dcm_list_file
 from dicom2elk.utils.logging import create_logger
@@ -20,7 +20,7 @@ from dicom2elk.utils.misc import prepare_dcm_list_batches
 
 
 def main():
-    parser = get_parser()
+    parser = get_dicom2elk_parser()
     args = parser.parse_args()
 
     if not args.profile and args.profile_tsv is not None:
