@@ -66,6 +66,7 @@ build-python-wheel:
 #test-python-install: @ Tests the python package installation
 test-python-install: install-python install-python-wheel	
 	dicom2elk --version
+	file2list --version
 
 #help:	@ List available tasks on this project
 help:
