@@ -22,9 +22,13 @@ def test_extract_metadata_from_dcm_list_asyncio(test_dcm_files, io_path):
         output_dir=str(io_path),
     )
     assert isinstance(dcm_json_files_list, list)
-    for dcm_json_file in dcm_json_files_list:
-        assert os.path.exists(dcm_json_file)
-        os.remove(dcm_json_file)
+    # It generates only one JSON file as SOP Instance UID is the same
+    # for all DICOM files in the test set
+    output_json_file = os.path.join(
+        io_path, "1.3.6.1.4.1.5962.1.1.4.1.1.20040826185059.5457.json"
+    )
+    assert os.path.exists(output_json_file)
+    os.remove(output_json_file)
 
 
 def test_extract_metadata_from_dcm_list_singleproc(test_dcm_files, io_path):
@@ -33,9 +37,13 @@ def test_extract_metadata_from_dcm_list_singleproc(test_dcm_files, io_path):
         test_dcm_files, n_threads=1, mode="json", output_dir=str(io_path)
     )
     assert isinstance(dcm_json_files_list, list)
-    for dcm_json_file in dcm_json_files_list:
-        assert os.path.exists(dcm_json_file)
-        os.remove(dcm_json_file)
+    # It generates only one JSON file as SOP Instance UID is the same
+    # for all DICOM files in the test set
+    output_json_file = os.path.join(
+        io_path, "1.3.6.1.4.1.5962.1.1.4.1.1.20040826185059.5457.json"
+    )
+    assert os.path.exists(output_json_file)
+    os.remove(output_json_file)
 
 
 def test_extract_metadata_from_dcm_list_multiproc(test_dcm_files, io_path):
@@ -44,9 +52,11 @@ def test_extract_metadata_from_dcm_list_multiproc(test_dcm_files, io_path):
         test_dcm_files, n_threads=2, mode="json", output_dir=str(io_path)
     )
     assert isinstance(dcm_json_files_list, list)
-    for dcm_json_file in dcm_json_files_list:
-        assert os.path.exists(dcm_json_file)
-        os.remove(dcm_json_file)
+    output_json_file = os.path.join(
+        io_path, "1.3.6.1.4.1.5962.1.1.4.1.1.20040826185059.5457.json"
+    )
+    assert os.path.exists(output_json_file)
+    os.remove(output_json_file)
 
 
 def test_extract_metadata_from_dcm_wrong(test_gz_file, io_path):
