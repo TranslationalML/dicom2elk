@@ -152,17 +152,17 @@ options:
   ```bash
   file2list \
   --path "/path/to/directory/containg/dicoms" \
-  --output-dir "/path/to/directory/containg/output/text/files"
+  --output-dir "/path/to/directory/containing/output/text/files"
   ```
 
-  where `/path/to/directory/containg/output/text/files` defines the directory where the output text files will be placed.
+  where `/path/to/directory/containing/output/text/files` defines the directory where the output text files will be placed.
 
 * Run dicom2elk with one of the text file created before:
   
   ```bash
   dicom2elk \
     --mode json \
-    -i "/path/to/directory/containg/output/text/files/dicom_list.txt" \
+    -i "/path/to/directory/containing/output/text/files/dicom_list.txt" \
     -o "/path/of/output/dir" \
     --n-threads 12
   ```
