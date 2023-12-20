@@ -1,6 +1,6 @@
 # dicom2elk
 
-A simple and fast package that extracts relevant tags from dicom files and uploads them in JSON format to elasticsearch.
+A simple and fast package that creates dicom file lists, extracts relevant tags from the file list, and uploads them in JSON format to elasticsearch.
 
 # How to install on Ubuntu 22.04
 
