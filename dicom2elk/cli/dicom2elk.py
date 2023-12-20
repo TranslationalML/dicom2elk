@@ -29,7 +29,10 @@ def main():
         )
 
     # Create logger
-    logger = create_logger(args.log_level, args.output_dir)
+    log_basename = ".".join(
+        [os.path.splitext(os.path.basename(args.input_dcm_list))[0], "log"]
+    )
+    logger = create_logger(args.log_level, args.output_dir, log_basename)
     warnings.filterwarnings("ignore")
 
     # Make sure path are absolute
