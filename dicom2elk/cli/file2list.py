@@ -48,24 +48,10 @@ def main():
         logger.info(f"{arg}: {getattr(args, arg)}")
 
     # connect to database
-    db_connection = sq.connect(DB_FILE)
+    db_connection = sq.connect(database=args.db_file)
 
     # create table to store file paths
-    db_connection.execute('''CREATE TABLE IF NOT EXISTS pacs_file_paths
-                     (path TEXT PRIMARY KEY,
-                      access_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                      batch TEXT
-                      );''')
-    db_connection.execute('''CREATE INDEX IF NOT EXISTS pacs_file_paths_idx
-      ON pacs_file_paths 
-        (path)
-      WHERE batch is null;''')
-    db_connection.execute('''CREATE INDEX IF NOT EXISTS pacs_file_paths_idx_tmp
-      ON pacs_file_paths 
-        (batch)
-      ;''')
-
-    get_db_size(db_connection)
+    create_table(db_connection, table=args.db_table)
 
     # assigned regular string date
     date_unixtime = time.mktime(datetime(1990, 1, 1, 0, 0).timetuple())
@@ -74,13 +60,64 @@ def main():
     nb_files = 0
     still_working = 0
 
-    clean_db(db_connection, BATCH_SIZE, output_dir)
+    clean_db(db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir)
 
+    for root, _, files in os.walk(args.path):
+        # get list of files as batches
+        file_batches = prepare_file_list_batches(files, args.batch_size)
+        # iterate over batches
+        for file_batch in tqdm.tqdm(
+            file_batches,
+            total=len(file_batches),
+            desc=f"Processing batches (# of files: {len(files)}, batch size: {args.batch_size})",
+        ):
+            # iterate over files in batch
+            for file in file_batch:
+                # get absolute path of file
+                file_path = os.path.join(root, file)
+                still_working += 1
+                if os.path.getmtime(file_path) > date_unixtime:
+                    # insert path into database
+                    status = db_connection.execute("INSERT OR IGNORE INTO pacs_file_paths (path) VALUES (?)", (file_path,))
+                    for row in status:
+                        print(row)
+                    nb_files += 1
+                if args.limit is not None and args.limit <= still_working:
                     logger.info("Nbr file read : " + str(still_working))
                     logger.info("Finished!")
+                    return closing_connection(
+                        db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir
+                    )
+            stage_line(db_connection, table=args.db_table, batch=args.batch_size)
+            dump_staged_file(db_connection, table=args.db_table, out=args.output_dir)   
+        
+        # for file in files:
+        #     # get absolute path of file
+        #     file_path = os.path.join(root, file)
+        #     still_working += 1
+        #     if os.path.getmtime(file_path) > date_unixtime:
+
+        #         # insert path into database
+        #         status = db_connection.execute("INSERT OR IGNORE INTO pacs_file_paths (path) VALUES (?)", (file_path,))
+        #         for row in status:
+        #             print(row)
+        #         nb_files += 1
+        #         if nb_files % args.batch_size == 0:
+        #             stage_line(db_connection, table=args.db_table, batch=args.batch_size)
+        #             dump_staged_file(db_connection, table=args.db_table, out=args.output_dir)
+        #     if args.limit is not None and args.limit <= still_working:
+        #         logger.info("Nbr file read : " + str(still_working))
+        #         logger.info("Finished!")
+        #         return closing_connection(
+        #             db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir
+        #         )
+            
     # commit changes and close connection
     logger.info("Nbr file read : " + str(still_working))
     logger.info("Finished!")
+    return closing_connection(
+        db_connection,  table=args.db_table, batch=args.batch_size, out=args.output_dir
+    )
 
 
 if __name__ == "__main__":
