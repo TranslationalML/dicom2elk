@@ -119,26 +119,55 @@ def get_file2list_parser():
         "--path",
         type=str,
         required=True,
-        help="The path to start exploring",
-    )
-    parser.add_argument(
-        "-l",
-        "--limit",
-        type=int,
-        required=True,
-        help="The max number of file to find",
+        help="The path to start exploring.",
     )
     parser.add_argument(
         "-o",
         "--output-dir",
         type=str,
         required=True,
-        help="Specify an output directory to save the list of file. ",
+        help="Specify an output directory to save the list of file.",
+    )
+    parser.add_argument(
+        "-d",
+        "--db-file",
+        type=str,
+        default="file2list.db",
+        help="Specify the name of the database file. Default is 'file2list.db'.",
+    )
+    parser.add_argument(
+        "-t",
+        "--db-table",
+        type=str,
+        default="pacs_file_paths",
+        help="Specify the name of the table in the database. Default is 'pacs_file_paths'.",
+    )
+    parser.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        default=None,
+        help="The max number of file to find. Default is None.",
+    )
+    parser.add_argument(
+        "-b",
+        "--batch-size",
+        type=int,
+        default=500,
+       help="Batch size for dumping the list of file. Default is 500.",
+    )
+    parser.add_argument(
+        "-L",
+        "--log-level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level. Default is INFO.",
     )
     parser.add_argument(
         "-v",
         "--version",
         action="version",
-        version=f"{__packagename__} {__version__}\n\n{__copyright__}",
+        version=f"file2list - {__packagename__} {__version__}\n\n{__copyright__}",
     )
     return parser
