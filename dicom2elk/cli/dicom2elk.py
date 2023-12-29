@@ -16,7 +16,7 @@ from dicom2elk.utils.io import read_dcm_list_file
 from dicom2elk.utils.logging import create_logger
 from dicom2elk.utils.config import set_n_threads
 from dicom2elk.utils.profiling import append_profiler_results
-from dicom2elk.utils.misc import prepare_dcm_list_batches
+from dicom2elk.utils.misc import prepare_file_list_batches
 
 
 def main():
@@ -76,7 +76,7 @@ def main():
     }
 
     # Prepare batches of dicom files to process
-    dcm_list_batches = prepare_dcm_list_batches(dcm_list, args.batch_size)
+    dcm_list_batches = prepare_file_list_batches(dcm_list, args.batch_size)
 
     if args.profile:
         # Process batches of dicom files with memory profiler
