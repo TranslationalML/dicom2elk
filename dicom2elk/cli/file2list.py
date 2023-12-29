@@ -23,9 +23,29 @@ def main():
     parser = get_file2list_parser()
     args = parser.parse_args()
 
+    # Create the log filename and make sure there is not white space
+    # and special character in the name of the input directory (basedir)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    basedir = os.path.basename(os.path.abspath(args.path))
+    log_basename = f"file2list_{basedir}_{timestamp}.log"
+    for c in [' ', '(', ')', '[', ']', '{', '}', ',', ';', ':', '\'', '\"', '\\', '/']:
+        log_basename = log_basename.replace(c, '_')
+    # Create logger
+    logger = create_logger(args.log_level, args.output_dir, log_basename)
+    
+    # Ignore warnings
+    warnings.filterwarnings("ignore")
+
     # Make sure path are absolute
-    dir_path = os.path.abspath(args.path)
-    output_dir = os.path.abspath(args.output_dir)
+    args.path = os.path.abspath(args.path)
+    args.output_dir = os.path.abspath(args.output_dir)
+    
+    # Display run summary
+    logger.info(
+        f"Running file2list (dicom2elk version {__version__}) with the following arguments:"
+    )
+    for arg in vars(args):
+        logger.info(f"{arg}: {getattr(args, arg)}")
 
     # connect to database
     db_connection = sq.connect(DB_FILE)
@@ -56,27 +76,11 @@ def main():
 
     clean_db(db_connection, BATCH_SIZE, output_dir)
 
-    for root, dirs, files in os.walk(dir_path):
-        for file in files:
-            # get absolute path of file
-            file_path = os.path.join(root, file)
-            still_working += 1
-            if os.path.getmtime(file_path) > date_unixtime:
-
-                # insert path into database
-                status = db_connection.execute("INSERT OR IGNORE INTO pacs_file_paths (path) VALUES (?)", (file_path,))
-                for row in status:
-                    print(row)
-                nb_files += 1
-                if nb_files % BATCH_SIZE == 0:
-                    stage_line(db_connection, BATCH_SIZE)
-                    dump_staged_file(db_connection, output_dir)
-            if still_working >= args.limit:
-                return closing_connection(db_connection, BATCH_SIZE, output_dir)
-
+                    logger.info("Nbr file read : " + str(still_working))
+                    logger.info("Finished!")
     # commit changes and close connection
-    print("Nbr file read : " + str(still_working))
-    return closing_connection(db_connection, BATCH_SIZE, output_dir)
+    logger.info("Nbr file read : " + str(still_working))
+    logger.info("Finished!")
 
 
 if __name__ == "__main__":
