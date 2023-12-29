@@ -94,15 +94,25 @@ This will run the command `pip install .[all]` for you and installthe following 
 file2list -h
 
 usage: file2list: A simple and fast package that explore a path and list all file it found in its way 
-       [-h] -p PATH -l LIMIT -o OUTPUT_DIR [-v]
+       [-h] -p PATH -o OUTPUT_DIR [-d DB_FILE] [-t DB_TABLE]
+       [-l LIMIT] [-b BATCH_SIZE]
+       [-L {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-v]
 
 options:
   -h, --help            show this help message and exit
-  -p PATH, --path PATH  The path to start exploring
-  -l LIMIT, --limit LIMIT
-                        The max number of file to find
+  -p PATH, --path PATH  The path to start exploring.
   -o OUTPUT_DIR, --output-dir OUTPUT_DIR
-                        Specify an output directory to save the list of file. 
+                        Specify an output directory to save the list of file.
+  -d DB_FILE, --db-file DB_FILE
+                        Specify the name of the database file. Default is 'file2list.db'.
+  -t DB_TABLE, --db-table DB_TABLE
+                        Specify the name of the table in the database. Default is 'pacs_file_paths'.
+  -l LIMIT, --limit LIMIT
+                        The max number of file to find. Default is None.
+  -b BATCH_SIZE, --batch-size BATCH_SIZE
+                        Batch size for dumping the list of file. Default is 500.
+  -L {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        Logging level. Default is INFO.
   -v, --version         show program's version number and exit
 ```
 
@@ -114,10 +124,11 @@ options:
 dicom2elk -h
 
 usage: dicom2elk: A simple and fast package that extracts relevant tags from dicom files and uploads them in JSON format to elasticsearch.
-       [-h] -i INPUT_DCM_LIST [-c CONFIG] -o OUTPUT_DIR [-m {json,elasticsearch}]
-       [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-n N_THREADS] [-b BATCH_SIZE]
-       [-p {multiprocessing,asyncio}] [-s SLEEP_TIME_MS] [--profile] [--profile-tsv PROFILE_TSV]
-       [-v]
+       [-h] -i INPUT_DCM_LIST [-c CONFIG] -o OUTPUT_DIR
+       [-m {json,elasticsearch}]
+       [-l {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-n N_THREADS]
+       [-b BATCH_SIZE] [-p {multiprocessing,asyncio}]
+       [-s SLEEP_TIME_MS] [--profile] [--profile-tsv PROFILE_TSV] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -153,6 +164,7 @@ options:
   file2list \
   --path "/path/to/directory/containg/dicoms" \
   --output-dir "/path/to/directory/containing/output/text/files"
+  --batch-size 500
   ```
 
   where `/path/to/directory/containing/output/text/files` defines the directory where the output text files will be placed.
