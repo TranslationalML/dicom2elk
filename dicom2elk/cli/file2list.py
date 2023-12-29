@@ -10,6 +10,7 @@ from dicom2elk.info import __version__
 from dicom2elk.cli.parser import get_file2list_parser
 from dicom2elk.utils.database import (
     create_table,
+    add_path_to_db,
     stage_line,
     dump_staged_file,
     clean_db,
@@ -78,7 +79,7 @@ def main():
                 still_working += 1
                 if os.path.getmtime(file_path) > date_unixtime:
                     # insert path into database
-                    status = db_connection.execute("INSERT OR IGNORE INTO pacs_file_paths (path) VALUES (?)", (file_path,))
+                    status = add_path_to_db(db_connection, file_path, table=args.db_table)
                     for row in status:
                         print(row)
                     nb_files += 1

@@ -38,6 +38,22 @@ def get_db_size_to_clean(db_connection: sq.Connection, table: str = 'pacs_file_p
         return int(row[0])
 
 
+def add_path_to_db(
+    db_connection: sq.Connection,
+    file_path: str,
+    table: str = 'pacs_file_paths'
+):
+    """Add a file path to the database.
+
+    Args:
+        db_connection (sq.Connection): The connection to the database.
+        file_path (str): The file path to add.
+        table (str): The name of the table. Default is 'pacs_file_paths'.
+    """
+    status = db_connection.execute(f"INSERT OR IGNORE INTO {table} (path) VALUES (?)", (file_path,))
+    return status
+
+
 def stage_line(db_connection: sq.Connection, table: str = 'pacs_file_paths', batch: int = BATCH_SIZE):
     """Stage a file (line) in the database.
 
@@ -63,12 +79,17 @@ def dump_staged_file(
         db_connection (sq.Connection): The connection to the database.
         table (str): The name of the table. Default is 'pacs_file_paths'.
         out (str): The output directory. Default is '.'.
+    
+    Returns:
+        str: The path to the text file or None if there is no staged file.
     """
     now = datetime.now()  # current date and time
     current_time = now.strftime("%Y%m%d_%H%M%S%f")
 
     cmd = f"SELECT path FROM {table} where batch = 'TMP_';"
     x = db_connection.execute(cmd)
+    
+    file_path = None
 
     data_file = ''
     for row in x:
@@ -84,6 +105,8 @@ def dump_staged_file(
         db_connection.execute(
             f"UPDATE {table} SET batch = 'dicom_{current_time}.txt' WHERE batch = 'TMP_';"
         )
+    
+    return file_path
 
 
 def clean_db(db_connection: sq.Connection, table: str = 'pacs_file_paths', batch: int = BATCH_SIZE, out: str = '.'):
