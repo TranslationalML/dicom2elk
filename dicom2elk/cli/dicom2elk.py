@@ -10,17 +10,17 @@ import memory_profiler
 import warnings
 
 from dicom2elk.info import __packagename__, __version__, __copyright__
-from dicom2elk.cli.parser import get_parser
+from dicom2elk.cli.parser import get_dicom2elk_parser
 from dicom2elk.core.process import process_batches
 from dicom2elk.utils.io import read_dcm_list_file
 from dicom2elk.utils.logging import create_logger
 from dicom2elk.utils.config import set_n_threads
 from dicom2elk.utils.profiling import append_profiler_results
-from dicom2elk.utils.misc import prepare_dcm_list_batches
+from dicom2elk.utils.misc import prepare_file_list_batches
 
 
 def main():
-    parser = get_parser()
+    parser = get_dicom2elk_parser()
     args = parser.parse_args()
 
     if not args.profile and args.profile_tsv is not None:
@@ -29,7 +29,10 @@ def main():
         )
 
     # Create logger
-    logger = create_logger(args.log_level, args.output_dir)
+    log_basename = ".".join(
+        [os.path.splitext(os.path.basename(args.input_dcm_list))[0], "log"]
+    )
+    logger = create_logger(args.log_level, args.output_dir, log_basename)
     warnings.filterwarnings("ignore")
 
     # Make sure path are absolute
@@ -73,7 +76,7 @@ def main():
     }
 
     # Prepare batches of dicom files to process
-    dcm_list_batches = prepare_dcm_list_batches(dcm_list, args.batch_size)
+    dcm_list_batches = prepare_file_list_batches(dcm_list, args.batch_size)
 
     if args.profile:
         # Process batches of dicom files with memory profiler

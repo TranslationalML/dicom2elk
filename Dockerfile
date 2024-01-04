@@ -62,7 +62,7 @@ COPY scripts/entrypoint_pytest.sh /entrypoint_pytest.sh
 RUN chmod +x /entrypoint_pytest.sh
 
 # Create entrypoint to run dicom2elk executable script in dicom2elk environment
-ENTRYPOINT ["micromamba", "run", "-n", "base", "dicom2elk"]
+ENTRYPOINT ["micromamba", "run", "-n", "base"]
 
 ###############################################################################
 # Container Image Metadata (label schema: http://label-schema.org/rc1/)

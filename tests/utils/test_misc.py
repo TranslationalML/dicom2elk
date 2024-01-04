@@ -3,12 +3,12 @@
 
 """Tests for dicom2elk.utils.misc module."""
 
-from dicom2elk.utils.misc import prepare_dcm_list_batches
+from dicom2elk.utils.misc import prepare_file_list_batches
 
 
-def test_prepare_dcm_list_batches(test_dcm_files):
+def test_prepare_file_list_batches(test_dcm_files):
    # Prepare batches of dicom files to process
-    dcm_list_batches = prepare_dcm_list_batches(test_dcm_files, 2)
+    dcm_list_batches = prepare_file_list_batches(test_dcm_files, 2)
 
     # Test if the batches are created correctly
     assert len(dcm_list_batches) == len(test_dcm_files) // 2

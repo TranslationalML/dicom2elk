@@ -36,10 +36,15 @@ def test_dryrun_dicom2elk(script_runner, tmpdir, test_dcm_files, io_path):
     assert ret.success
 
     # Test if the output files exist
-    assert os.path.exists(os.path.join(output_dir, "dicom2elk.log"))
-    output_files = [os.path.basename(f) + ".json" for f in test_dcm_files]
-    for output_file in output_files:
-        assert os.path.exists(os.path.join(output_dir, output_file))
+    log_basename = ".".join(
+        [os.path.splitext(os.path.basename(dcm_list_file))[0], "log"]
+    )
+    assert os.path.exists(os.path.join(output_dir, log_basename))
+    # It generates only one JSON file as SOP Instance UID is the same
+    # for all DICOM files in the test set
+    assert os.path.exists(
+        os.path.join(output_dir, "1.3.6.1.4.1.5962.1.1.4.1.1.20040826185059.5457.json")
+    )
 
 
 @pytest.mark.script_launch_mode("subprocess")

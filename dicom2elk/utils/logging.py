@@ -38,12 +38,15 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def create_logger(level=logging.INFO, output_dir: str = None):
+def create_logger(
+    level=logging.INFO, output_dir: str = None, log_basename: str = "dicom2elk.log"
+):
     """Create and configure logger.
 
     Args:
         level (int): Logging level.
         output_dir (str): Output directory.
+        log_basename (str): Basename of the log file.
 
     Returns:
         logging.Logger: Logger.
@@ -55,10 +58,10 @@ def create_logger(level=logging.INFO, output_dir: str = None):
 
     # Make sure we won't have duplicated messages in the output
     # See https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
-    if not len(_logger.handlers): 
+    if not len(_logger.handlers):
         _logger.addHandler(_handler)
     if output_dir is not None:
-        _log_file = os.path.join(output_dir, "dicom2elk.log")
+        _log_file = os.path.join(output_dir, log_basename)
         _handler = logging.FileHandler(_log_file)
         _handler.setFormatter(CustomFormatter())
         _logger.addHandler(_handler)
