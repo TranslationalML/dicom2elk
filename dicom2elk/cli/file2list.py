@@ -64,54 +64,30 @@ def main():
     clean_db(db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir)
 
     for root, _, files in os.walk(args.path):
-        # get list of files as batches
-        file_batches = prepare_file_list_batches(files, args.batch_size)
-        # iterate over batches
-        for file_batch in tqdm.tqdm(
-            file_batches,
-            total=len(file_batches),
-            desc=f"Processing batches (# of files: {len(files)}, batch size: {args.batch_size})",
+        # iterate over files
+        for file in tqdm.tqdm(
+            files,
+            total=len(files),
+            desc=f"Processing files (batch size: {args.batch_size})",
         ):
-            # iterate over files in batch
-            for file in file_batch:
-                # get absolute path of file
-                file_path = os.path.join(root, file)
-                still_working += 1
-                if os.path.getmtime(file_path) > date_unixtime:
-                    # insert path into database
-                    status = add_path_to_db(db_connection, file_path, table=args.db_table)
-                    for row in status:
-                        print(row)
-                    nb_files += 1
-                if args.limit is not None and args.limit <= still_working:
-                    logger.info("Nbr file read : " + str(still_working))
-                    logger.info("Finished!")
-                    return closing_connection(
-                        db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir
-                    )
-            stage_line(db_connection, table=args.db_table, batch=args.batch_size)
-            dump_staged_file(db_connection, table=args.db_table, out=args.output_dir)   
-        
-        # for file in files:
-        #     # get absolute path of file
-        #     file_path = os.path.join(root, file)
-        #     still_working += 1
-        #     if os.path.getmtime(file_path) > date_unixtime:
-
-        #         # insert path into database
-        #         status = db_connection.execute("INSERT OR IGNORE INTO pacs_file_paths (path) VALUES (?)", (file_path,))
-        #         for row in status:
-        #             print(row)
-        #         nb_files += 1
-        #         if nb_files % args.batch_size == 0:
-        #             stage_line(db_connection, table=args.db_table, batch=args.batch_size)
-        #             dump_staged_file(db_connection, table=args.db_table, out=args.output_dir)
-        #     if args.limit is not None and args.limit <= still_working:
-        #         logger.info("Nbr file read : " + str(still_working))
-        #         logger.info("Finished!")
-        #         return closing_connection(
-        #             db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir
-        #         )
+            # get absolute path of file
+            file_path = os.path.join(root, file)
+            still_working += 1
+            if os.path.getmtime(file_path) > date_unixtime:
+                # insert path into database
+                status = add_path_to_db(db_connection, file_path, table=args.db_table)
+                for row in status:
+                    print(row)
+                nb_files += 1
+                if nb_files % args.batch_size == 0:
+                    stage_line(db_connection, table=args.db_table, batch=args.batch_size)
+                    dump_staged_file(db_connection, table=args.db_table, out=args.output_dir)
+            if args.limit is not None and args.limit <= still_working:
+                logger.info("Nbr file read : " + str(still_working))
+                logger.info("Finished!")
+                return closing_connection(
+                    db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir
+                )
             
     # commit changes and close connection
     logger.info("Nbr file read : " + str(still_working))
