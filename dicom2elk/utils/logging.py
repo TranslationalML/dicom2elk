@@ -66,3 +66,26 @@ def create_logger(
         _handler.setFormatter(CustomFormatter())
         _logger.addHandler(_handler)
     return _logger
+
+
+def find_logger_basefilename(logger):
+    """Finds the logger base filename.
+    
+    Code modified from:
+        - https://stackoverflow.com/questions/3311255/how-to-get-file-the-python-logging-module-is-currently-logging-to
+
+    Args:
+        logger(logging.Logger): Logger.
+
+    Return:
+        log_file(str): Path to log file.
+    """
+    log_file = None
+    parent = logger.__dict__['parent']
+    if parent.__class__.__name__ == 'RootLogger':
+        for h in logger.__dict__['handlers']:
+            if h.__class__.__name__ == 'FileHandler':
+                log_file = h.baseFilename
+    else:
+        log_file = find_logger_basefilename(parent)
+    return log_file
