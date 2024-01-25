@@ -47,7 +47,7 @@ def get_file2json_parser():
         "-i",
         "--input-dcm-list",
         type=str,
-        required=False,   # not mandatory
+        required=False,  # not mandatory
         help="Text file providing a list of dicom files to process",
     )
     parser.add_argument(
@@ -55,7 +55,7 @@ def get_file2json_parser():
         "--config",
         type=str,
         help="Config file in JSON format which defines all variables related to "
-             "Elasticsearch instance (url, port, index, user, pwd)",
+        "Elasticsearch instance (url, port, index, user, pwd)",
     )
     parser.add_argument(
         "-o",
@@ -63,7 +63,7 @@ def get_file2json_parser():
         type=str,
         required=True,
         help="Specify an output directory to save the log file. "
-             "If `--mode json` is specified, all JSON files are also saved in this directory",
+        "If `--mode json` is specified, all JSON files are also saved in this directory",
     )
     parser.add_argument(
         "-m",
@@ -72,7 +72,7 @@ def get_file2json_parser():
         default="json",
         choices=["json", "elasticsearch"],
         help="Specify the mode to use for saving the extracted metadata tags."
-             "Can be either 'json' or 'elasticsearch'",
+        "Can be either 'json' or 'elasticsearch'",
     )
     parser.add_argument(
         "-l",
@@ -95,7 +95,7 @@ def get_file2json_parser():
         type=int,
         default=10000,
         help="Batch size for extracting and saving/uploading "
-             "metadata tags from dicom files",
+        "metadata tags from dicom files",
     )
     parser.add_argument(
         "-p",
@@ -104,7 +104,7 @@ def get_file2json_parser():
         default="multiprocessing",
         choices=["multiprocessing", "asyncio"],
         help="Process handler to use for parallel/asynchronous processing. "
-             "Can be either 'multiprocessing' or 'asyncio'",
+        "Can be either 'multiprocessing' or 'asyncio'",
     )
     parser.add_argument(
         "-s",
@@ -112,15 +112,15 @@ def get_file2json_parser():
         type=float,
         default=0,
         help="Sleep time in milliseconds to wait between each file processing. "
-             "This might be useful to avoid overloading the system.",
+        "This might be useful to avoid overloading the system.",
     )
     parser.add_argument(  # boolean option to perform or not memory profiling
         "--profile",
         action="store_true",
         help="When specified, performance / memory profiling is performed and results are saved. "
-             "If --profile-tsv is specified, results are saved in the specified TSV file. "
-             "Otherwise, results are saved in a TSV file named after the input dicom list file "
-             "with the suffix '.profile.tsv' in the specified `output_dir` directory.",
+        "If --profile-tsv is specified, results are saved in the specified TSV file. "
+        "Otherwise, results are saved in a TSV file named after the input dicom list file "
+        "with the suffix '.profile.tsv' in the specified `output_dir` directory.",
     )
     parser.add_argument(
         "--profile-tsv",
@@ -135,6 +135,7 @@ def get_file2json_parser():
         version=f"{__packagename__} {__version__}\n\n{__copyright__}",
     )
     return parser
+
 
 def get_dicom2elk_parser():
     parser = argparse.ArgumentParser(
@@ -281,7 +282,7 @@ def get_file2list_parser():
         "--batch-size",
         type=int,
         default=500,
-       help="Batch size for dumping the list of file. Default is 500.",
+        help="Batch size for dumping the list of file. Default is 500.",
     )
     parser.add_argument(
         "-L",
