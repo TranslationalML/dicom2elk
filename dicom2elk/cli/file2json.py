@@ -11,8 +11,9 @@ import warnings
 
 from dicom2elk.cli.dicom2elk import process
 from dicom2elk.info import __packagename__, __version__, __copyright__
-from dicom2elk.cli.parser import get_dicom2elk_parser, get_file2json_parser
+from dicom2elk.cli.parser import get_file2json_parser
 from dicom2elk.utils.logging import create_logger
+
 
 def main():
     parser = get_file2json_parser()
@@ -22,7 +23,6 @@ def main():
         parser.error(
             "The following argument is required when --profile-tsv is specified: --profile"
         )
-
 
     # Make sure path are absolute
     args.output_dir = os.path.abspath(args.output_dir)
@@ -45,7 +45,7 @@ def main():
         args.profile_tsv = os.path.abspath(args.profile_tsv)
 
     # Create logger
-    log_basename = os.path.join(args.output_dir,"file2json.log")
+    log_basename = os.path.join(args.output_dir, "file2json.log")
     logger = create_logger(args.log_level, args.output_dir, log_basename)
     warnings.filterwarnings("ignore")
 
@@ -67,14 +67,13 @@ def main():
 
             args.input_dcm_list = file_dest
             process(args)
-            shutil.move(file_dest,file_done)
+            shutil.move(file_dest, file_done)
             toc = time.perf_counter()
             # Compute total elapsed time
             total_time = toc - tic
 
             logger.info(f"Run summary:")
             logger.info(f"Total time: {total_time:.2f} sec.")
-
 
     logger.info("Finished!")
 
@@ -83,4 +82,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
