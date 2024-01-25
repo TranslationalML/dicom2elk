@@ -30,7 +30,6 @@ def main():
 
 
 def process(args):
-
     # Make sure path are absolute
     args.input_dcm_list = os.path.abspath(args.input_dcm_list)
     args.output_dir = os.path.abspath(args.output_dir)
