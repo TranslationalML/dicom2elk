@@ -12,7 +12,7 @@ from multiprocessing import Pool
 from pydicom import dcmread
 
 from dicom2elk.utils.io import write_json_file
-from dicom2elk.utils.logging import create_logger, find_logger_basefilename
+from dicom2elk.utils.logging import create_logger, get_logger_basefilename
 from dicom2elk.core.elasticsearch.api import send_bulk_to_elasticsearch
 
 
@@ -61,8 +61,8 @@ def extract_metadata_from_dcm(
         dcm_dataset = dcmread(dcm_file, stop_before_pixels=stop_before_pixels)
     except Exception as e:
         logger.error(f"Error while processing {dcm_file}: {e}")
-        log_file = find_logger_basefilename(logger)
-        error_file = log_file.replace('.log', 'errors.txt')
+        log_file = get_logger_basefilename(logger)
+        error_file = log_file.replace('.log', '.errors.txt')
         logger.info(f"Write error in {error_file}")
         with open(error_file, "a") as f:
             f.write(dcm_file)
