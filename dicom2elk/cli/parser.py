@@ -157,6 +157,14 @@ def get_file2list_parser():
        help="Batch size for dumping the list of file. Default is 500.",
     )
     parser.add_argument(
+        "-s",
+        "--sleep-time-ms",
+        type=float,
+        default=0,
+        help="Sleep time in milliseconds to wait between each file processing. "
+        "This might be useful to avoid overloading the system.",
+    )
+    parser.add_argument(
         "-L",
         "--log-level",
         type=str,
