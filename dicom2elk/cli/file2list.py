@@ -16,7 +16,6 @@ from dicom2elk.utils.database import (
     clean_db,
     closing_connection,
 )
-from dicom2elk.utils.misc import prepare_file_list_batches
 from dicom2elk.utils.logging import create_logger
 
 
