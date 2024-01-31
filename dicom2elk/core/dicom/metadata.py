@@ -76,7 +76,7 @@ def extract_metadata_from_dcm(
         json_file = os.path.join(output_dir, file_name + ".json")
         return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
 
-    time.sleep(sleep_time_ms)
+    time.sleep(sleep_time_ms / 1000.0)  # takes seconds as argument
 
     return json_dict
 

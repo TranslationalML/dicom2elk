@@ -16,7 +16,6 @@ from dicom2elk.utils.database import (
     clean_db,
     closing_connection,
 )
-from dicom2elk.utils.misc import prepare_file_list_batches
 from dicom2elk.utils.logging import create_logger
 
 
@@ -88,6 +87,7 @@ def main():
                 return closing_connection(
                     db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir
                 )
+            time.sleep(args.sleep_time_ms / 1000.0)  # takes seconds as argument
             
     # commit changes and close connection
     logger.info("Nbr file read : " + str(still_working))
