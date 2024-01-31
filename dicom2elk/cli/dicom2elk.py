@@ -22,19 +22,14 @@ from dicom2elk.utils.misc import prepare_file_list_batches
 def main():
     parser = get_dicom2elk_parser()
     args = parser.parse_args()
-
     if not args.profile and args.profile_tsv is not None:
         parser.error(
             "The following argument is required when --profile-tsv is specified: --profile"
         )
+    return process(args)
 
-    # Create logger
-    log_basename = ".".join(
-        [os.path.splitext(os.path.basename(args.input_dcm_list))[0], "log"]
-    )
-    logger = create_logger(args.log_level, args.output_dir, log_basename)
-    warnings.filterwarnings("ignore")
 
+def process(args):
     # Make sure path are absolute
     args.input_dcm_list = os.path.abspath(args.input_dcm_list)
     args.output_dir = os.path.abspath(args.output_dir)
@@ -58,6 +53,13 @@ def main():
     # Create output directory if it does not exist
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
+
+    # Create logger
+    log_basename = ".".join(
+        [os.path.splitext(os.path.basename(args.input_dcm_list))[0], "log"]
+    )
+    logger = create_logger(args.log_level, args.output_dir, log_basename)
+    warnings.filterwarnings("ignore")
 
     # Display run summary
     logger.info(
