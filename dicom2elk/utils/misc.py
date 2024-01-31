@@ -15,6 +15,8 @@ def prepare_file_list_batches(file_list: list, batch_size: int):
         list: List of batches of files to process.
     """
     file_list_batches = []
+    if len(file_list) == 0:
+        return file_list_batches
     if batch_size > len(file_list):
         batch_size = len(file_list)
     for i in range(0, len(file_list), batch_size):

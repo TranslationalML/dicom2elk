@@ -66,3 +66,18 @@ def create_logger(
         _handler.setFormatter(CustomFormatter())
         _logger.addHandler(_handler)
     return _logger
+
+
+def get_logger_basefilename(logger):
+    """Finds the logger base filename.
+
+    Args:
+        logger(logging.Logger): Logger.
+
+    Return:
+        log_file(str): Path to log file.
+    """
+    log_file = None
+    if logger is not None:
+        log_file = logger.handlers[1].baseFilename
+    return log_file

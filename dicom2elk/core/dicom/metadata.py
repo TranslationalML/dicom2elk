@@ -12,7 +12,7 @@ from multiprocessing import Pool
 from pydicom import dcmread
 
 from dicom2elk.utils.io import write_json_file
-from dicom2elk.utils.logging import create_logger
+from dicom2elk.utils.logging import create_logger, get_logger_basefilename
 from dicom2elk.core.elasticsearch.api import send_bulk_to_elasticsearch
 
 
@@ -56,21 +56,27 @@ def extract_metadata_from_dcm(
     logger.debug(f"Processing {dcm_file}")
 
     stop_before_pixels = kwargs.pop("stop_before_pixels", True)
+
     try:
         dcm_dataset = dcmread(dcm_file, stop_before_pixels=stop_before_pixels)
-        json_dict = dcm_dataset.to_json_dict()
-        json_dict["filepath"] = dcm_file
-
-        if mode == "json":
-            file_name = json_dict["00080018"]["Value"][0]
-            json_file = os.path.join(output_dir, file_name + ".json")
-            return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
-
-        time.sleep(sleep_time_ms)
-
     except Exception as e:
-        logging.error(f"Error while processing {dcm_file}: {e}")
+        logger.error(f"Error while processing {dcm_file}: {e}")
+        log_file = get_logger_basefilename(logger)
+        error_file = log_file.replace('.log', '.errors.txt')
+        logger.info(f"Write error in {error_file}")
+        with open(error_file, "a") as f:
+            f.write(dcm_file)
         return None
+
+    json_dict = dcm_dataset.to_json_dict()
+    json_dict["filepath"] = dcm_file
+
+    if mode == "json":
+        file_name = json_dict["00080018"]["Value"][0]
+        json_file = os.path.join(output_dir, file_name + ".json")
+        return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
+
+    time.sleep(sleep_time_ms)
 
     return json_dict
 
