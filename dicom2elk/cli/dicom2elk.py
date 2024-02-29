@@ -1,7 +1,16 @@
-# Copyright (C) 2023, The TranslationalML team and Contributors. All rights reserved.
-#  This software is distributed under the open-source Apache 2.0 license.
+# Copyright 2023-2024 Lausanne University and Lausanne University Hospital, Switzerland & Contributors
 
-"""Main module."""
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import sys
@@ -22,19 +31,14 @@ from dicom2elk.utils.misc import prepare_file_list_batches
 def main():
     parser = get_dicom2elk_parser()
     args = parser.parse_args()
-
     if not args.profile and args.profile_tsv is not None:
         parser.error(
             "The following argument is required when --profile-tsv is specified: --profile"
         )
+    return process(args)
 
-    # Create logger
-    log_basename = ".".join(
-        [os.path.splitext(os.path.basename(args.input_dcm_list))[0], "log"]
-    )
-    logger = create_logger(args.log_level, args.output_dir, log_basename)
-    warnings.filterwarnings("ignore")
 
+def process(args):
     # Make sure path are absolute
     args.input_dcm_list = os.path.abspath(args.input_dcm_list)
     args.output_dir = os.path.abspath(args.output_dir)
@@ -58,6 +62,13 @@ def main():
     # Create output directory if it does not exist
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
+
+    # Create logger
+    log_basename = ".".join(
+        [os.path.splitext(os.path.basename(args.input_dcm_list))[0], "log"]
+    )
+    logger = create_logger(args.log_level, args.output_dir, log_basename)
+    warnings.filterwarnings("ignore")
 
     # Display run summary
     logger.info(
