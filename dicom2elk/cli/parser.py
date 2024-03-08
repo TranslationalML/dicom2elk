@@ -41,7 +41,7 @@ def get_file2json_parser():
         help="Specify an output directory to save the error file. ",
     )
     parser.add_argument(
-        "-d ",
+        "-d",
         "--output-done",
         type=str,
         required=True,
