@@ -55,13 +55,6 @@ def get_file2json_parser():
         help="Specify a temp directory to work. ",
     )
     parser.add_argument(
-        "-i",
-        "--input-dcm-list",
-        type=str,
-        required=False,  # not mandatory
-        help="Text file providing a list of dicom files to process",
-    )
-    parser.add_argument(
         "-c",
         "--config",
         type=str,
