@@ -79,13 +79,17 @@ def extract_metadata_from_dcm(
             f.write(dcm_file)
         return None
 
-    json_dict = dcm_dataset.to_json_dict()
+    json_dict = dcm_dataset.to_json_dict(suppress_invalid_tags= True)
     json_dict["filepath"] = dcm_file
 
     if mode == "json":
-        file_name = json_dict["00080018"]["Value"][0]
-        json_file = os.path.join(output_dir, file_name + ".json")
-        return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
+        try:
+            file_name = json_dict["00080018"]["Value"][0]
+            json_file = os.path.join(output_dir, file_name + ".json")
+            return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
+        except:
+            json_file = os.path.join(output_dir, 'error_'+str(hash(dcm_file)) + ".json")
+            return write_json_file(json_file, json_dict, sleep_time_ms=sleep_time_ms)
 
     time.sleep(sleep_time_ms / 1000.0)  # takes seconds as argument
 
