@@ -61,8 +61,11 @@ def add_path_to_db(
         file_path (str): The file path to add.
         table (str): The name of the table. Default is 'pacs_file_paths'.
     """
-    status = db_connection.execute(f"INSERT OR IGNORE INTO {table} (path) VALUES (?)", (file_path,))
-    return status
+    try:
+        db_connection.execute(f"INSERT INTO {table} (path) VALUES (?)", (file_path,))
+        return 1
+    except:
+        return 0
 
 
 def stage_line(db_connection: sq.Connection, table: str = 'pacs_file_paths', batch: int = BATCH_SIZE):

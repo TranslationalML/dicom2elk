@@ -72,17 +72,22 @@ def main():
             file_orig = os.path.join(root, file)
             file_dest = os.path.join(args.temp_folder, file)
             file_done = os.path.join(args.output_done, file)
+            file_err = os.path.join(args.output_err, file)
             shutil.move(file_orig, file_dest)
 
             args.input_dcm_list = file_dest
-            process(args)
-            shutil.move(file_dest, file_done)
-            toc = time.perf_counter()
-            # Compute total elapsed time
-            total_time = toc - tic
+            #Analyzing the file
+            try:
+                process(args)
+                shutil.move(file_dest, file_done)
+                toc = time.perf_counter()
+                # Compute total elapsed time
+                total_time = toc - tic
 
-            logger.info(f"Run summary:")
-            logger.info(f"Total time: {total_time:.2f} sec.")
+                logger.info(f"Run summary:")
+                logger.info(f"Total time: {total_time:.2f} sec.")
+            except:
+                shutil.move(file_dest, file_err)
 
     logger.info("Finished!")
 

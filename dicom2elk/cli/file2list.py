@@ -71,7 +71,7 @@ def main():
     date_unixtime = time.mktime(datetime(1990, 1, 1, 0, 0).timetuple())
 
     # traverse directory and subdirectories
-    nb_files = 0
+    nb_files = 1
     still_working = 0
 
     clean_db(db_connection, table=args.db_table, batch=args.batch_size, out=args.output_dir)
@@ -88,10 +88,7 @@ def main():
             still_working += 1
             if os.path.getmtime(file_path) > date_unixtime:
                 # insert path into database
-                status = add_path_to_db(db_connection, file_path, table=args.db_table)
-                for row in status:
-                    print(row)
-                nb_files += 1
+                nb_files += add_path_to_db(db_connection, file_path, table=args.db_table)
                 if nb_files % args.batch_size == 0:
                     stage_line(db_connection, table=args.db_table, batch=args.batch_size)
                     dump_staged_file(db_connection, table=args.db_table, out=args.output_dir)
